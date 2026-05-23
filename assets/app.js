@@ -6,10 +6,12 @@ import { parseFiles, detectFileType } from "./parser.js";
 import { renderReport } from "./renderer.js";
 import { MOCK_REPORT_MODEL, MOCK_CLARIFICATION_QUESTIONS } from "./data/mock_report.js";
 
-const SCREENS = ["landing", "context", "upload", "processing", "clarification", "report"];
+// "landing" lives in static HTML for AEO/SEO. The JS state machine
+// owns the in-app screens only.
+const SCREENS = ["context", "upload", "processing", "clarification", "report"];
 
 const state = {
-  screen: "landing",
+  screen: "context",
   context: {
     user_name: "",
     household_structure: null,
@@ -27,6 +29,27 @@ const state = {
 };
 
 const root = document.getElementById("app");
+const landingEl = document.getElementById("landing");
+
+function showApp() {
+  if (landingEl) landingEl.hidden = true;
+  if (root) root.hidden = false;
+  document.body.classList.add("in-app");
+}
+
+function showLanding() {
+  if (landingEl) landingEl.hidden = false;
+  if (root) root.hidden = true;
+  document.body.classList.remove("in-app");
+}
+
+// Hook landing CTAs (any element with data-action="start").
+document.querySelectorAll('[data-action="start"]').forEach(btn => {
+  btn.addEventListener("click", () => {
+    showApp();
+    go("context");
+  });
+});
 
 // --- small DOM helper (mirrors renderer.js) ---
 function el(tag, props = {}, ...children) {
@@ -70,24 +93,9 @@ function renderStepIndicator() {
 }
 
 // =====================================================================
-// SCREENS
+// SCREENS — landing is now static HTML; flow starts at "context"
 // =====================================================================
 
-function renderLanding() {
-  return el("div", { class: "screen text-center" },
-    el("h1", { class: "hero" }, COPY.landing.hero),
-    el("p", { class: "subhero" }, COPY.landing.sub),
-    el("button", {
-      class: "btn btn-primary",
-      onclick: () => go("context")
-    }, COPY.landing.cta),
-    el("ul", { class: "trust-bullets" },
-      ...COPY.landing.trust.map(t => el("li", {}, t))
-    )
-  );
-}
-
-// ----------------------------------------------------------------
 function renderContext() {
   const ctx = state.context;
 
@@ -181,7 +189,7 @@ function renderContext() {
         disabled: canContinue ? null : "true",
         onclick: () => canContinue && go("upload")
       }, COPY.context.next),
-      el("button", { class: "btn btn-ghost", onclick: () => go("landing") }, "חזרה")
+      el("button", { class: "btn btn-ghost", onclick: () => showLanding() }, "חזרה")
     )
   );
 }
@@ -406,13 +414,12 @@ function render() {
   root.innerHTML = "";
   let content;
   switch (state.screen) {
-    case "landing":       content = renderLanding(); break;
     case "context":       content = renderContext(); break;
     case "upload":        content = renderUpload(); break;
     case "processing":    content = renderProcessing(); break;
     case "clarification": content = renderClarification(); break;
     case "report":        content = renderReportScreen(); break;
-    default:              content = renderLanding();
+    default:              content = renderContext();
   }
   const wrap = document.createElement("div");
   wrap.className = "container";
@@ -421,11 +428,21 @@ function render() {
   renderStepIndicator();
 }
 
-// Debug helper: open the report directly with ?screen=report
+// Debug helper: open the report directly with ?screen=report.
+// Also keeps the app hidden until activated, so landing stays the default.
 const params = new URLSearchParams(window.location.search);
-if (params.get("screen") === "report") {
-  state.report_model = MOCK_REPORT_MODEL;
-  state.screen = "report";
+const debugScreen = params.get("screen");
+if (debugScreen && SCREENS.includes(debugScreen)) {
+  if (debugScreen === "report") state.report_model = MOCK_REPORT_MODEL;
+  if (debugScreen === "clarification") {
+    state.questions = MOCK_CLARIFICATION_QUESTIONS;
+    state.report_model = MOCK_REPORT_MODEL;
+  }
+  state.screen = debugScreen;
+  showApp();
+  render();
+} else {
+  // Default: landing visible, app hidden. Pre-render the first app
+  // screen so the DOM is ready when the user clicks the CTA.
+  render();
 }
-
-render();

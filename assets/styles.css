@@ -674,6 +674,249 @@ h3.subsection-title {
   .num-block .num-value { font-size: 18px; }
 }
 
+/* =====================================================
+   STATIC LANDING PAGE (separate from the in-app flow)
+   ===================================================== */
+
+.landing-page { background: var(--bg); }
+
+.landing-hero {
+  padding: 72px 0 56px;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.landing-hero .hero {
+  font-size: 40px;
+  line-height: 1.18;
+  max-width: 760px;
+  margin: 0 auto 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.landing-hero .subhero {
+  font-size: 18px;
+  max-width: 680px;
+  margin: 0 auto 28px;
+  color: var(--text-secondary);
+}
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+.landing-section {
+  padding: 64px 0;
+  border-bottom: 1px solid var(--border);
+}
+.landing-section:last-of-type { border-bottom: none; }
+.landing-section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 24px;
+  text-align: center;
+}
+.landing-section .section-sub {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin: -12px 0 32px;
+}
+
+/* Pain */
+.landing-pain {
+  background: var(--surface);
+}
+.landing-pain h2 {
+  text-align: right;
+  max-width: 680px;
+  margin: 0 auto 16px;
+}
+.landing-pain p {
+  text-align: right;
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* How it works */
+.how-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+.how-steps li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  position: relative;
+}
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+.how-steps h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.how-steps p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Result preview */
+.landing-result { background: var(--surface); }
+.result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 40px;
+  align-items: center;
+}
+.result-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.result-bullets li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.result-bullets li:last-child { border-bottom: none; }
+.result-bullets strong {
+  color: var(--text);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+}
+.result-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+.result-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.result-preview-caption {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+/* Audience */
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.audience-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 22px;
+}
+.audience-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.audience-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* FAQ */
+.landing-faq { background: var(--surface); }
+.faq-list {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+.faq-item summary {
+  padding: 18px 0;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+";
+  color: var(--text-tertiary);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+.faq-item[open] summary::after { content: "−"; }
+.faq-item p {
+  margin: 0 0 18px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* Final CTA */
+.landing-final-cta {
+  text-align: center;
+  padding: 72px 0 80px;
+}
+.landing-final-cta p {
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+}
+
+@media (max-width: 720px) {
+  .landing-hero { padding: 48px 0 36px; }
+  .landing-hero .hero { font-size: 28px; }
+  .landing-hero .subhero { font-size: 16px; }
+  .landing-section { padding: 48px 0; }
+  .landing-section h2 { font-size: 22px; }
+  .result-grid { grid-template-columns: 1fr; gap: 24px; }
+  .result-preview { order: -1; }
+}
+
+/* Hide the step indicator on the landing page (default state) */
+#step-indicator { display: none; }
+body.in-app #step-indicator { display: flex; }
+
 /* Utilities */
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }

@@ -337,16 +337,23 @@ function buildContextForBackend() {
 }
 
 async function postAnalyze(body) {
-  const res = await fetch(SUPER_SERVICE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`backend ${res.status}: ${t}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(SUPER_SERVICE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`backend ${res.status}: ${t}`);
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
   }
-  return await res.json();
 }
 
 async function startProcessing() {

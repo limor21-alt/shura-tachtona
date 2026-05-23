@@ -247,14 +247,18 @@ function renderAuditTrail(model) {
   );
 }
 
-function renderExport(model, onExportJson) {
-  return el("section", { class: "report-section card" },
+function renderExport(model, handlers) {
+  return el("section", { class: "report-section card export-section" },
     el("h2", { class: "section-title" }, COPY.report.sections.export),
     el("p", { class: "text-secondary", style: "margin:0 0 16px;font-size:14px;" },
-      "אפשר להוריד את הדוח כקובץ ולחזור אליו בכל זמן."),
+      COPY.report.export_intro),
     el("div", { class: "btn-row", style: "margin-top:0;" },
-      el("button", { class: "btn btn-secondary", onclick: onExportJson },
-        COPY.report.export_json)
+      el("button", { class: "btn btn-primary", onclick: handlers.onExportPdf || (() => window.print()) },
+        COPY.report.export_pdf),
+      el("button", { class: "btn btn-secondary", onclick: handlers.onExportJson || (() => {}) },
+        COPY.report.export_json),
+      el("button", { class: "btn btn-ghost", onclick: handlers.onExportCsv || (() => {}) },
+        COPY.report.export_csv)
     )
   );
 }
@@ -277,7 +281,7 @@ export function renderReport(model, handlers = {}) {
   const audit = renderAuditTrail(model);
   if (audit) root.appendChild(audit);
 
-  root.appendChild(renderExport(model, handlers.onExportJson || (() => {})));
+  root.appendChild(renderExport(model, handlers));
 
   return root;
 }

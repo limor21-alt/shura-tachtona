@@ -143,7 +143,9 @@ export const COPY = {
     one_time_caption: "₪{amount} · חד־פעמי · לא נספר כהכנסה חודשית",
     no_evidence_fallback: "לא הצלחנו לפרק את הסכום לפי ספקים בצורה אמינה.",
     export_json: "הורדת JSON",
-    export_pdf: "הורדת PDF",
+    export_pdf: "הדפסה / שמירה כ-PDF",
+    export_csv: "הורדת CSV (יומן סיווגים)",
+    export_intro: "אפשר לשמור את הדוח אצלכם — להשוואה בעתיד, או לשיתוף עם בן/בת זוג.",
     review_non_blocking: "סקירת הפריטים בסוף"
   },
 

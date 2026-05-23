@@ -476,12 +476,103 @@ function renderClarification() {
 // ----------------------------------------------------------------
 function renderReportScreen() {
   return renderReport(state.report_model, {
-    onExportJson: () => downloadJson(state.report_model, "shura-tachtona-report.json")
+    onExportJson: () => downloadJson(state.report_model, "shura-tachtona-report.json"),
+    onExportPdf:  () => printReport(),
+    onExportCsv:  () => downloadCsv(state.report_model)
   });
 }
 
 function downloadJson(obj, filename) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  triggerDownload(blob, filename);
+}
+
+function downloadCsv(model) {
+  // Export the classification audit trail as CSV. Useful for power
+  // users / reviewing decisions in a spreadsheet.
+  const rows = [
+    ["category", "label_or_rule_id", "amount_or_decision", "evidence_or_confidence"]
+  ];
+
+  // Income
+  for (const x of model.income_model.fixed) {
+    rows.push(["fixed_income", x.label, String(x.monthly_amount), `${x.evidence_count} occurrences`]);
+  }
+  for (const x of model.income_model.variable) {
+    rows.push(["variable_income", x.label, `${x.range.min}-${x.range.max}`, `${x.months_present} months`]);
+  }
+  for (const x of model.income_model.one_time_excluded) {
+    rows.push(["one_time_income_excluded", x.label, String(x.amount), x.date]);
+  }
+
+  // Expenses
+  for (const x of model.expense_model.fixed_commitments) {
+    rows.push(["fixed_commitment", x.label, String(x.monthly_amount), x.category]);
+  }
+  for (const x of model.expense_model.debt_payments) {
+    rows.push(["debt_payment", x.label, String(x.monthly_amount), ""]);
+  }
+  for (const x of model.expense_model.flexible_spending) {
+    rows.push(["flexible_spending", x.label, String(x.monthly_avg), x.category]);
+  }
+  for (const x of model.expense_model.review_only_items) {
+    rows.push(["review_only", x.label, String(x.monthly_avg ?? x.period_total ?? 0), x.reason]);
+  }
+  for (const x of model.expense_model.one_time_expenses) {
+    rows.push(["one_time_expense", x.label, String(x.amount), `${x.category} · ${x.date}`]);
+  }
+  for (const x of model.expense_model.excluded_internal_transfers) {
+    rows.push(["cc_charge_excluded", x.label, String(x.amount), `${x.count} occurrences (NOT counted)`]);
+  }
+
+  // Audit
+  rows.push([]);
+  rows.push(["RULES_FIRED"]);
+  for (const r of model.classification_audit_trail.rules_fired) {
+    rows.push(["audit", r.rule_id, r.decision, `${r.row_ref} · ${r.confidence}`]);
+  }
+  if (model.classification_audit_trail.user_overrides.length > 0) {
+    rows.push([]);
+    rows.push(["USER_OVERRIDES"]);
+    for (const u of model.classification_audit_trail.user_overrides) {
+      rows.push(["override", u.question_id, `${u.before} → ${u.after}`, ""]);
+    }
+  }
+
+  // Build CSV with BOM so Excel opens it as UTF-8 (critical for Hebrew).
+  const escape = (v) => {
+    const s = String(v ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = "﻿" + rows.map(r => r.map(escape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  triggerDownload(blob, "shura-tachtona-audit.csv");
+}
+
+/** Print the report. Force-opens all <details> collapsibles so the
+ *  audit trail is part of the saved PDF, then restores their state. */
+function printReport() {
+  const details = Array.from(document.querySelectorAll("details.collapsible"));
+  const prevOpen = details.map(d => d.open);
+  details.forEach(d => { d.open = true; });
+  try {
+    window.print();
+  } finally {
+    // Restore after the print dialog closes. window.print() blocks in
+    // most browsers, but use a microtask just in case.
+    queueMicrotask(() => {
+      details.forEach((d, i) => { d.open = prevOpen[i]; });
+    });
+  }
+}
+
+// Also handle ctrl+P / cmd+P globally so the same audit-open behavior
+// applies even when the user uses the keyboard shortcut.
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("details.collapsible").forEach(d => d.open = true);
+});
+
+function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename;

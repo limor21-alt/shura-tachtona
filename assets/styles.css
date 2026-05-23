@@ -1460,6 +1460,73 @@ h3.subsection-title {
 #step-indicator { display: none; }
 body.in-app #step-indicator { display: flex; }
 
+/* =====================================================
+   PRINT STYLESHEET — for "save as PDF" via the browser
+   ===================================================== */
+@media print {
+  /* Hide chrome that doesn't belong in a saved report */
+  .app-header,
+  .app-footer,
+  #landing,
+  .export-section,
+  .btn-row,
+  .btn {
+    display: none !important;
+  }
+
+  /* White background, black text — fits printer + saves toner */
+  html, body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Force the report container to take full width */
+  .app-main, .container, .screen-wide {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Open the audit trail by default in print so it's part of the artifact */
+  details.collapsible {
+    border: 1px solid #ccc !important;
+  }
+  details.collapsible > * {
+    display: revert !important;
+  }
+  details.collapsible summary::after { display: none; }
+
+  /* Avoid splitting sections across pages */
+  .report-section,
+  .summary-card,
+  .card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Show the URL after each link for context (if any links exist) */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    color: #666;
+    font-size: 10px;
+  }
+
+  /* Hide the "דוגמה" tag and other non-essential decorations */
+  .hero-sample-tag,
+  .confidence-badge {
+    /* keep these — they're useful in the PDF */
+  }
+
+  /* Make summary numbers prominent */
+  .summary-card { padding: 16px !important; }
+  .summary-numbers {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+}
+
 /* Utilities */
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }

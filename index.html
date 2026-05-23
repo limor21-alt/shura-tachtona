@@ -420,6 +420,8 @@
     </div>
   </footer>
 
+  <!-- SheetJS (xlsx parser). Loaded before app.js so parser.js can read window.XLSX. -->
+  <script src="assets/vendor/xlsx.mini.min.js"></script>
   <script type="module" src="assets/app.js"></script>
 </body>
 </html>

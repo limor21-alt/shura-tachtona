@@ -1,0 +1,94 @@
+{
+  "_description": "Acceptance test #16 — only credit card file uploaded. report_type = partial_credit_only. Must NOT show a full monthly gap; banner copy informs the user what's missing.",
+
+  "report_type": "partial_credit_only",
+  "data_confidence": "medium",
+  "data_confidence_reason": "רק קובץ אשראי — אין עו״ש לזיהוי הכנסות",
+
+  "summary_status": "insufficient_data",
+  "display_mode": "single_scenario",
+
+  "summary": {
+    "headline_copy": "רואים את ההוצאות באשראי, אבל בלי דוח עו״ש אי אפשר לחשב שורה תחתונה מלאה.",
+    "meaning_copy": "הדוח שלכם מבוסס רק על קובץ אשראי אחד. כדי לקבל שורה תחתונה ברורה — כמה נכנס וכמה יוצא — נצטרך גם תדפיס עו״ש לאותה תקופה.",
+    "monthly_income_fixed": 0,
+    "monthly_income_variable_range": null,
+    "monthly_expenses_total": 6840,
+    "monthly_gap": 0,
+    "gap_label": "מאוזן"
+  },
+
+  "work_done": {
+    "files_analyzed": [
+      { "type": "credit_card", "name": "מקס_מרץ-מאי.xlsx", "months": 3, "row_count": 412 }
+    ],
+    "months_covered": 3,
+    "transactions_reviewed": 412,
+    "cc_charges_deduplicated": 0,
+    "one_time_items_excluded": 2,
+    "bullets_copy": [
+      "קראנו את כל התנועות בקובץ האשראי",
+      "סימנו 2 חיובים חד־פעמיים",
+      "לא חישבנו שורה תחתונה — חסר דוח עו״ש"
+    ]
+  },
+
+  "income_model": {
+    "fixed": [],
+    "variable": [],
+    "one_time_excluded": [],
+    "internal_transfers_excluded": [],
+    "uncertain": []
+  },
+
+  "expense_model": {
+    "fixed_commitments": [],
+    "debt_payments": [],
+    "flexible_spending": [
+      { "label": "סופר",            "monthly_avg": 4200, "category": "מזון",      "evidence": [] },
+      { "label": "וולט ומסעדות",  "monthly_avg": 1640, "category": "מזון בחוץ",  "evidence": [] },
+      { "label": "דלק",              "monthly_avg": 1000, "category": "תחבורה",   "evidence": [] }
+    ],
+    "review_only_items": [],
+    "one_time_expenses": [
+      { "label": "תיקון מחשב", "amount": 1200, "date": "2025-04-10", "category": "בית" },
+      { "label": "טיסה",         "amount": 2400, "date": "2025-05-02", "category": "נסיעות" }
+    ],
+    "excluded_internal_transfers": []
+  },
+
+  "priority_checks": [
+    {
+      "id": "pc-1",
+      "title": "חסר תדפיס עו״ש",
+      "why_it_matters": "בלי עו״ש לא ניתן לדעת אם ההוצאות הללו מכוסות, ובאיזה רוחב.",
+      "suggested_action": "להוריד עו״ש מהבנק לאותה תקופה ולהעלות שוב.",
+      "amount_context": "תקופה מכוסה: 3 חודשים",
+      "copy_blurb": "אשראי לבד מראה רק חצי מהתמונה — את הצד של ההוצאות. הצד השני (הכנסות, הוצאות ישירות מעו״ש, חיובים פנימיים) חסר."
+    }
+  ],
+
+  "improvement_opportunities": [],
+
+  "findings_by_area": [
+    { "area": "מזון",     "monthly_avg": 5840, "items": 2, "evidence_strength": "confirmed" },
+    { "area": "תחבורה",   "monthly_avg": 1000, "items": 1, "evidence_strength": "confirmed" }
+  ],
+
+  "non_blocking_items": [],
+
+  "classification_audit_trail": {
+    "rules_fired": [],
+    "user_overrides": [],
+    "excluded_items": []
+  },
+
+  "export_data": {
+    "json_blob_ref": null,
+    "pdf_url": null,
+    "csv_url": null
+  },
+
+  "parser_warnings": ["דוח חלקי — אין קובץ עו״ש"],
+  "forbidden_word_violations": []
+}

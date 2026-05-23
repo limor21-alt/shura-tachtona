@@ -38,8 +38,10 @@ const FORBIDDEN_PHRASES: RegExp[] = [
 const PER_MONTH_PATTERN = /\/\s*חודש|לחודש|בחודש/;
 
 /** "פער" is forbidden — surplus context should use "עודף מחושב",
- *  deficit context should use "חוסר חודשי". */
-const GAP_WORD_PATTERN = /\bפער\b/;
+ *  deficit context should use "חוסר חודשי". Hebrew word boundary via
+ *  Hebrew-letter lookarounds (JS \b doesn't classify Hebrew chars as
+ *  word characters). */
+const GAP_WORD_PATTERN = /(?<![א-ת])פער(?![א-ת])/;
 
 export interface ValidationViolation {
   field: string;

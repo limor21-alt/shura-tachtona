@@ -154,6 +154,11 @@ export type BlockingReason =
 export interface GateDecision {
   /** 0–5 questions. Ideal 1–3. */
   blocking_questions: ClarificationQuestion[];
+  /** Server-internal: question_id → row_refs the question affects.
+   *  Used by apply_answers to know which row decisions to override.
+   *  Stateless replay: the gate is deterministic, so re-running it on
+   *  the same inputs reproduces the same map. */
+  question_targets: Record<string, string[]>;
 }
 
 // ====================================================================

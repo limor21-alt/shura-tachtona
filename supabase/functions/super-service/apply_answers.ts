@@ -1,27 +1,105 @@
 // Stage D — apply user answers to the classification.
 //
-// Takes the existing classification and the user's answers, and produces
-// an updated classification with overrides applied. Each override is
-// also recorded in the audit trail so the final report can show what
-// changed.
+// Stateless replay: re-runs the gate to get question_targets, then
+// rewrites the affected ClassifiedTx decisions. Records every change
+// in overrides for the audit trail.
 //
-// Phase 2 skeleton.
+// Mapping logic per question kind:
+//   q-partner-income:
+//     "fixed"    → row decision becomes fixed_income
+//     "variable" → no change (already variable)
+//     "internal" → row decision becomes internal_transfer_excluded
+//     "unknown"  → no change
+//
+//   q-large-onetime-income:
+//     "one_time"  → no change
+//     "recurring" → one_time_income_excluded → variable_income
+//     "unknown"   → no change
+//
+//   q-internal-transfer:
+//     "internal" → review_only → internal_transfer_excluded
+//     "expense"  → no change (stays review_only)
+//     "unknown"  → no change
 
-import type { Answer, Classification } from "./schema.ts";
+import type {
+  Answer,
+  ClassificationDecision,
+  Classification,
+  Facts
+} from "./schema.ts";
+import { clarificationGate } from "./gate.ts";
 
 export interface AppliedAnswers {
   classification: Classification;
   overrides: { question_id: string; before: string; after: string }[];
 }
 
+function decisionAfterAnswer(
+  questionId: string,
+  choice: string,
+  before: ClassificationDecision
+): ClassificationDecision | null {
+  if (choice === "unknown") return null;
+
+  if (questionId === "q-partner-income") {
+    if (choice === "fixed")    return "fixed_income";
+    if (choice === "variable") return before === "variable_income" ? null : "variable_income";
+    if (choice === "internal") return "internal_transfer_excluded";
+  }
+
+  if (questionId === "q-large-onetime-income") {
+    if (choice === "one_time")  return null;
+    if (choice === "recurring") return "variable_income";
+  }
+
+  if (questionId === "q-internal-transfer") {
+    if (choice === "internal") return "internal_transfer_excluded";
+    if (choice === "expense")  return null;
+  }
+
+  return null;
+}
+
 export function applyAnswers(
+  facts: Facts,
   classification: Classification,
   answers: Answer[]
 ): AppliedAnswers {
-  // Phase 2: no-op. Phase 4 implementation will re-run affected rules
-  // with user-provided overrides.
+  // Replay the gate to know which row_refs each question affects.
+  const gate = clarificationGate(facts, classification);
+  const targets = gate.question_targets;
+
+  // Index decisions by row_ref for efficient lookup.
+  const byRef = new Map(classification.decisions.map(d => [d.row_ref, d]));
+  const overrides: { question_id: string; before: string; after: string }[] = [];
+
+  for (const ans of answers) {
+    const affectedRefs = targets[ans.question_id];
+    if (!affectedRefs || affectedRefs.length === 0) continue;
+
+    for (const ref of affectedRefs) {
+      const d = byRef.get(ref);
+      if (!d) continue;
+      const after = decisionAfterAnswer(ans.question_id, ans.choice, d.decision);
+      if (!after || after === d.decision) continue;
+
+      overrides.push({ question_id: ans.question_id, before: d.decision, after });
+      byRef.set(ref, {
+        ...d,
+        decision: after,
+        rule_id: `user_override:${ans.question_id}:${ans.choice}`,
+        confidence: "high"
+      });
+    }
+  }
+
+  const newDecisions = classification.decisions.map(d => byRef.get(d.row_ref) ?? d);
+
   return {
-    classification,
-    overrides: []
+    classification: {
+      decisions: newDecisions,
+      cc_dedup_report: classification.cc_dedup_report
+    },
+    overrides
   };
 }

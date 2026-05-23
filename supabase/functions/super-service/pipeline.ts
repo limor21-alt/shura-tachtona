@@ -33,6 +33,7 @@ export async function runPipeline(req: AnalyzeRequest): Promise<AnalyzeResponse>
 
   // Stage D — apply answers (no-op if none)
   const { classification: cls2, overrides } = applyAnswers(
+    facts,
     classification,
     req.answers ?? []
   );

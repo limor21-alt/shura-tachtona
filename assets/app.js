@@ -313,33 +313,117 @@ function renderProcessing() {
   );
 }
 
+// Edge Function endpoint — DO NOT change name. Deployed as `super-service`.
+const SUPER_SERVICE_URL = "https://oldhxkiefqhnzullbyqk.supabase.co/functions/v1/super-service";
+
+function buildContextForBackend() {
+  const c = state.context;
+  // Map the user-facing context shape to the backend's Context type.
+  return {
+    user_name: c.user_name,
+    household_structure: c.household_structure,
+    partner_name: c.partner_name || undefined,
+    children_names: c.children_names
+      ? c.children_names.split(",").map(s => s.trim()).filter(Boolean)
+      : [],
+    has_variable_income: c.has_variable_income ?? "unknown",
+    has_partner_or_business_transfers: c.has_partner_or_business_transfers ?? "unknown",
+    planned_files: c.planned_files === "both"
+      ? ["bank", "credit_card"]
+      : c.planned_files
+      ? [c.planned_files]
+      : []
+  };
+}
+
+async function postAnalyze(body) {
+  const res = await fetch(SUPER_SERVICE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`backend ${res.status}: ${t}`);
+  }
+  return await res.json();
+}
+
 async function startProcessing() {
   state.processing_step = 0;
   go("processing");
 
-  // Step 1: parse files (real call, but Phase 1 stub returns quickly).
-  state.files_parsed = await parseFiles(state.files.map(f => f.file));
-  await sleep(450);
+  // Step 1: parse files in the browser (SheetJS, see parser.js).
+  let parsed;
+  try {
+    parsed = await parseFiles(state.files.map(f => f.file));
+  } catch (e) {
+    state.fatal_error = (e && e.message) || String(e);
+    go("upload");
+    return;
+  }
+  state.files_parsed = parsed;
+  await sleep(350);
   state.processing_step = 1; render();
+  await sleep(300);
+  state.processing_step = 2; render();
+  await sleep(300);
+  state.processing_step = 3; render();
 
-  // Phase 1: simulate the rest of the pipeline.
-  for (let i = 2; i <= 6; i++) {
-    await sleep(550 + Math.random() * 250);
-    state.processing_step = i; render();
+  // Step 4: call the backend pipeline.
+  const requestBody = {
+    rows: parsed.rows,
+    context: buildContextForBackend(),
+    answers: state.answers && Object.keys(state.answers).length > 0
+      ? Object.entries(state.answers).map(([id, choice]) => ({ question_id: id, choice }))
+      : undefined
+  };
+
+  let response;
+  try {
+    response = await postAnalyze(requestBody);
+    state.processing_step = 4; render();
+    await sleep(300);
+  } catch (e) {
+    // Fallback path for local dev / unreachable backend — render
+    // the mock so the UX is still demoable.
+    console.warn("backend unreachable, falling back to mock", e);
+    state.processing_step = 4; render();
+    await sleep(400);
+    state.questions = MOCK_CLARIFICATION_QUESTIONS;
+    state.report_model = MOCK_REPORT_MODEL;
+    state.processing_step = 5; render();
+    await sleep(300);
+    state.processing_step = 6; render();
+    await sleep(250);
+    go(state.questions.length > 0 ? "clarification" : "report");
+    return;
   }
 
-  // Phase 1: mock outcome — show clarification screen.
-  // Real flow: gate.ts decides whether to show or skip.
-  state.questions = MOCK_CLARIFICATION_QUESTIONS;
-  state.report_model = MOCK_REPORT_MODEL;
+  state.processing_step = 5; render();
+  await sleep(280);
+  state.processing_step = 6; render();
+  await sleep(280);
 
-  await sleep(300);
-  if (state.questions.length > 0) {
+  if (response.kind === "needs_clarification") {
+    state.questions = response.questions;
     go("clarification");
-  } else {
+  } else if (response.kind === "report") {
+    state.report_model = response.report_model;
     go("report");
+  } else {
+    state.fatal_error = "תגובה לא צפויה מהשרת";
+    go("upload");
   }
 }
+
+// Called from the clarification screen "המשך לדוח" button. Re-runs
+// the full pipeline with the user's answers so the backend gates the
+// transition statelessly.
+async function submitAnswersAndContinue() {
+  await startProcessing();
+}
+window.__submitAnswers = submitAnswersAndContinue;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -383,7 +467,7 @@ function renderClarification() {
     el("div", { class: "btn-row" },
       el("button", {
         class: "btn btn-primary",
-        onclick: () => go("report")
+        onclick: () => submitAnswersAndContinue()
       }, allAnswered ? COPY.clarification.continue : COPY.clarification.skip_all)
     )
   );

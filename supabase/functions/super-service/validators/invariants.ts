@@ -7,8 +7,12 @@
 import type { ReportModel } from "../schema.ts";
 
 export class InvariantViolationError extends Error {
-  constructor(public invariant: string, public detail: string) {
+  invariant: string;
+  detail: string;
+  constructor(invariant: string, detail: string) {
     super(`Invariant violation: ${invariant} — ${detail}`);
+    this.invariant = invariant;
+    this.detail = detail;
   }
 }
 

@@ -1,39 +1,191 @@
-// Stage F — Claude copy writer.
+// Stage F — Claude copy writer with deterministic fallback.
 //
-// Takes a fully-computed ReportModel and calls Claude with the system
-// prompt from prompt.ts. Claude returns a ClaudeCopy object with short
-// Hebrew strings for named slots. We validate the output against
-// forbidden_words.ts. On rejection we use the deterministic fallback
-// strings (already in frontend at assets/copy/he.js).
-//
-// Phase 2 skeleton — does not call Claude yet. Returns empty strings
-// so the renderer falls through to fallback copy.
+// Calls Anthropic API with the system prompt from prompt.ts. The
+// response is parsed as ClaudeCopy and validated against
+// forbidden_words.ts. On any failure (network, parse, validation), we
+// fall back to deterministic Hebrew strings computed from the model.
+// This means the product still works when ANTHROPIC_API_KEY is unset
+// or unreachable.
 
 import type { ClaudeCopy, ReportModel } from "./schema.ts";
 import { validateClaudeCopy } from "./validators/forbidden_words.ts";
+import { CLAUDE_MODEL, SYSTEM_PROMPT, buildUserMessage } from "./prompt.ts";
 
-export async function writeCopy(_model: ReportModel): Promise<ClaudeCopy> {
-  // Phase 5 will:
-  //   1. Build user message via buildUserMessage(reportModel) from prompt.ts
-  //   2. POST to Anthropic API with SYSTEM_PROMPT
-  //   3. Parse the response JSON
-  //   4. Run validateClaudeCopy(parsed) — if violations, fall back
-  //   5. Return the validated copy
-  //
-  // Phase 2: empty strings, renderer uses fallback.
-  const empty: ClaudeCopy = {
-    headline_copy: "",
-    meaning_copy: "",
-    work_done_bullets: [],
-    priority_check_blurbs: [],
-    improvement_blurbs: []
+// deno-lint-ignore no-explicit-any
+declare const Deno: any;
+
+const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
+const REQUEST_TIMEOUT_MS = 12_000;
+
+function formatILS(n: number): string {
+  return "₪" + Math.round(Math.abs(n)).toLocaleString("he-IL");
+}
+
+// ====================================================================
+// Deterministic fallback — always safe Hebrew, no judgmental language.
+// ====================================================================
+
+function fallbackHeadline(model: ReportModel): string {
+  const { summary_status, summary } = model;
+  if (summary_status === "insufficient_data") {
+    return "בקבצים שהעלאתם אין מספיק נתונים כדי לחשב שורה תחתונה מלאה.";
+  }
+  if (summary_status === "variable_dependent") {
+    return "התמונה החודשית תלויה בהכנסה משתנה — בחודשים בלי ההכנסה נוצר חוסר, בחודשים שבהם היא נכנסת מתקבל עודף.";
+  }
+  if (summary_status === "surplus") {
+    return `ההכנסה הקבועה שלכם מכסה את כל ההוצאות החודשיות, ועוד נשאר ${formatILS(summary.monthly_gap)}.`;
+  }
+  if (summary_status === "deficit") {
+    return `ההוצאות החודשיות חורגות מההכנסה הקבועה ב-${formatILS(summary.monthly_gap)}.`;
+  }
+  return "ההכנסות וההוצאות החודשיות שלכם קרובות זו לזו.";
+}
+
+function fallbackMeaning(model: ReportModel): string {
+  if (model.summary_status === "insufficient_data") {
+    return "כדי לקבל תמונה מלאה, צריך להעלות לפחות עו״ש וכרטיסי אשראי לחודש אחד שלם.";
+  }
+  if (model.summary_status === "variable_dependent") {
+    return "ההכנסה הקבועה מכסה את ההוצאות הקבועות, אבל לא משאירה מרחב. ההכנסות המשתנות יכולות לסגור את הפער כשהן מגיעות.";
+  }
+  if (model.summary_status === "surplus") {
+    return "יש לכם עודף שאפשר להפנות לחיסכון, להלוואה, או להוצאה גמישה. הדוח מראה איפה הוא מסתתר.";
+  }
+  if (model.summary_status === "deficit") {
+    return "החוסר אינו אסון, אבל הוא צריך כיוון. הדוח מסמן איפה יש לכם הכי הרבה שליטה.";
+  }
+  return "התקציב שלכם מאוזן ברגע זה. הדוח מראה איפה יש גמישות לעתיד.";
+}
+
+function fallbackWorkDoneBullets(model: ReportModel): string[] {
+  const out: string[] = [];
+  out.push(`קראנו ${model.work_done.transactions_reviewed.toLocaleString("he-IL")} תנועות מהקבצים שהעלאתם`);
+  if (model.income_model.variable.length > 0) {
+    out.push("הפרדנו הכנסה קבועה מהכנסה משתנה");
+  }
+  if (model.work_done.cc_charges_deduplicated > 0) {
+    out.push(`מנענו ספירה כפולה של ${model.work_done.cc_charges_deduplicated} חיובי אשראי שמופיעים גם בעו״ש`);
+  }
+  if (model.work_done.one_time_items_excluded > 0) {
+    out.push(`סימנו ${model.work_done.one_time_items_excluded} פריטים חד־פעמיים — לא נספרים כהוצאה חודשית`);
+  }
+  return out;
+}
+
+function fallbackPriorityBlurb(check: ReportModel["priority_checks"][number]): string {
+  return check.why_it_matters;
+}
+
+function fallbackImprovementBlurb(io: ReportModel["improvement_opportunities"][number]): string {
+  if (io.evidence_strength === "review_only") {
+    return `סעיף שדורש סקירה — ${io.amount_label}. לא חיסכון ודאי, אבל שווה בדיקה.`;
+  }
+  return `${io.amount_label}. סעיף שיש לכם עליו שליטה ישירה — כל הפחתה כאן מתורגמת מיידית לחוסך.`;
+}
+
+function buildFallbackCopy(model: ReportModel): ClaudeCopy {
+  return {
+    headline_copy: fallbackHeadline(model),
+    meaning_copy: fallbackMeaning(model),
+    work_done_bullets: fallbackWorkDoneBullets(model),
+    priority_check_blurbs: model.priority_checks.map(c => ({
+      id: c.id,
+      copy_blurb: fallbackPriorityBlurb(c)
+    })),
+    improvement_blurbs: model.improvement_opportunities.map(io => ({
+      id: io.id,
+      copy_blurb: fallbackImprovementBlurb(io)
+    }))
   };
+}
 
-  const violations = validateClaudeCopy(empty);
+// ====================================================================
+// Claude call
+// ====================================================================
+
+async function callClaude(model: ReportModel, apiKey: string): Promise<ClaudeCopy | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(ANTHROPIC_ENDPOINT, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1500,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: buildUserMessage(model) }]
+      })
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text: string | undefined = data?.content?.[0]?.text;
+    if (!text) return null;
+
+    // Claude is asked to return JSON. Strip code fences if present.
+    const cleaned = text
+      .replace(/^[\s\S]*?```(?:json)?/, "")
+      .replace(/```[\s\S]*$/, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    // Shape check
+    const copy: ClaudeCopy = {
+      headline_copy: String(parsed.headline_copy ?? ""),
+      meaning_copy: String(parsed.meaning_copy ?? ""),
+      work_done_bullets: Array.isArray(parsed.work_done_bullets) ? parsed.work_done_bullets.map(String) : [],
+      priority_check_blurbs: Array.isArray(parsed.priority_check_blurbs)
+        ? parsed.priority_check_blurbs.map((b: { id: unknown; copy_blurb: unknown }) =>
+            ({ id: String(b.id ?? ""), copy_blurb: String(b.copy_blurb ?? "") }))
+        : [],
+      improvement_blurbs: Array.isArray(parsed.improvement_blurbs)
+        ? parsed.improvement_blurbs.map((b: { id: unknown; copy_blurb: unknown }) =>
+            ({ id: String(b.id ?? ""), copy_blurb: String(b.copy_blurb ?? "") }))
+        : []
+    };
+
+    return copy;
+  } catch (_e) {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ====================================================================
+// Main entry — Stage F
+// ====================================================================
+
+export async function writeCopy(model: ReportModel): Promise<ClaudeCopy> {
+  const apiKey = (typeof Deno !== "undefined" && Deno.env?.get?.("ANTHROPIC_API_KEY")) || "";
+
+  // Always have a deterministic copy ready as fallback.
+  const fallback = buildFallbackCopy(model);
+
+  if (!apiKey) return fallback;
+
+  const fromClaude = await callClaude(model, apiKey);
+  if (!fromClaude) return fallback;
+
+  // Validate Claude's output. If any field violates forbidden words /
+  // "/חודש"-on-one-time / "פער" / "כעגע" — drop the whole thing and
+  // use the fallback. Partial fields could be salvaged but the cleaner
+  // contract is all-or-nothing per request.
+  const violations = validateClaudeCopy(fromClaude);
   if (violations.length > 0) {
-    // Defensive: empty strings never violate; this branch should be unreachable.
-    return empty;
+    return fallback;
   }
 
-  return empty;
+  return fromClaude;
 }
+
+export { buildFallbackCopy };

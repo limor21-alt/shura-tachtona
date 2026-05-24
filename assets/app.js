@@ -17,9 +17,14 @@ const state = {
     household_structure: null,
     partner_name: "",
     children_names: "",
-    has_variable_income: null,
-    has_partner_or_business_transfers: null,
-    planned_files: null
+    // These three fields used to be asked upfront. They're now left
+    // unknown so the deterministic pipeline (extract_facts → classify →
+    // gate) detects them from the data and asks only if genuinely
+    // ambiguous. Kept in the shape so the backend Context schema still
+    // parses.
+    has_variable_income: "unknown",
+    has_partner_or_business_transfers: "unknown",
+    planned_files: ["both"]
   },
   files: [],
   files_parsed: null,
@@ -163,25 +168,13 @@ function renderContext() {
           value: ctx.children_names,
           oninput: (e) => { ctx.children_names = e.target.value; }
         })
-      ) : null,
+      ) : null
 
-      el("div", { class: "form-group" },
-        el("label", { class: "form-label" }, COPY.context.variable_income_label),
-        choiceGrid(COPY.context.variable_income_options, ctx.has_variable_income,
-          v => update("has_variable_income", v))
-      ),
-
-      el("div", { class: "form-group" },
-        el("label", { class: "form-label" }, COPY.context.transfers_label),
-        choiceGrid(COPY.context.transfers_options, ctx.has_partner_or_business_transfers,
-          v => update("has_partner_or_business_transfers", v))
-      ),
-
-      el("div", { class: "form-group" },
-        el("label", { class: "form-label" }, COPY.context.files_label),
-        choiceGrid(COPY.context.files_options, ctx.planned_files,
-          v => update("planned_files", v))
-      )
+      // Variable-income / business-transfers / planned-files questions
+      // were removed: the pipeline detects file types from content, and the
+      // deterministic gate asks 1–3 questions ONLY when the data is
+      // genuinely ambiguous. Pre-asking pre-empted that whole flow and
+      // contradicted the product premise ("upload the files, we figure it out").
     ),
     el("div", { class: "btn-row" },
       el("button", {

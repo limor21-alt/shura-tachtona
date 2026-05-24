@@ -1537,3 +1537,184 @@ body.in-app #step-indicator { display: flex; }
 .mb-8 { margin-bottom: 8px; }
 .mb-16 { margin-bottom: 16px; }
 .hidden { display: none !important; }
+
+/* =====================================================
+   DESIGN REFRESH — dark hero + green CTA + floating cards
+   Appended last so it overrides earlier rules cleanly.
+   ===================================================== */
+
+/* --- Hero: dark navy gradient, centered, white text --- */
+.landing-hero {
+  background:
+    radial-gradient(ellipse 60% 70% at 50% 0%, rgba(59, 130, 246, 0.25) 0%, transparent 70%),
+    linear-gradient(180deg, #0a1d4d 0%, #122968 60%, #1b357d 100%);
+  border-bottom: none;
+  padding: 96px 0 110px;
+  color: #fff;
+}
+.landing-hero .container { max-width: 760px; }
+.hero-grid {
+  grid-template-columns: 1fr;
+  gap: 0;
+  text-align: center;
+}
+.hero-text-col { text-align: center; }
+.hero-visual { display: none; }
+
+.hero-eyebrow {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e9eefb;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 8px 18px;
+}
+.landing-hero .hero {
+  color: #fff;
+  font-size: 64px;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 22px;
+}
+.landing-hero .subhero {
+  color: #c9d3ee;
+  font-size: 19px;
+  max-width: 620px;
+  margin: 0 auto 32px;
+}
+
+.hero-pills {
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+.hero-pills li {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #e9eefb;
+  font-size: 14px;
+  padding: 9px 18px;
+}
+.hero-pills li::before { display: none; }
+
+.hero-cta-row {
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+}
+.landing-hero .btn-primary {
+  background: #16a34a;
+  color: #fff;
+  font-weight: 700;
+  padding: 18px 44px;
+  font-size: 17px;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px -8px rgba(22, 163, 74, 0.55), 0 2px 6px rgba(0,0,0,0.15);
+}
+.landing-hero .btn-primary:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+.hero-cta-affirm {
+  color: #c9d3ee;
+  font-size: 14px;
+}
+.hero-cta-affirm strong { color: #fff; }
+.hero-empathy {
+  color: #a8b4d6;
+  text-align: center;
+  margin: 18px auto 0;
+}
+
+/* --- Header transparent over the dark hero --- */
+.app-header {
+  background: transparent;
+  border-bottom: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+.app-header .brand { color: #fff; }
+.landing-page { padding-top: 0; }
+
+/* --- Trust strip: tucked under the dark hero on a light bg --- */
+.trust-strip {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 22px 0;
+}
+
+/* --- Result section: 4 floating cards instead of a bullet list --- */
+.landing-result { background: var(--bg); }
+.result-grid {
+  display: block;
+}
+.result-bullets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+.result-bullets li {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 22px;
+  box-shadow: 0 2px 10px rgba(15, 30, 77, 0.04);
+  text-align: right;
+}
+.result-bullets li[data-eyebrow]::before {
+  content: attr(data-eyebrow);
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.result-bullets li strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.result-bullets li span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.result-preview {
+  max-width: 640px;
+  margin: 36px auto 0;
+}
+
+/* --- Final CTA: also green to match the hero --- */
+.landing-final-cta .btn-primary {
+  background: #16a34a;
+  padding: 18px 44px;
+  font-size: 17px;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px -8px rgba(22, 163, 74, 0.45);
+}
+.landing-final-cta .btn-primary:hover:not(:disabled) {
+  background: #15803d;
+}
+
+/* --- Section title polish --- */
+.landing-section h2 {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* --- Mobile tweaks for the dark hero --- */
+@media (max-width: 720px) {
+  .landing-hero { padding: 70px 0 64px; }
+  .landing-hero .hero { font-size: 38px; }
+  .landing-hero .subhero { font-size: 16px; }
+  .landing-section h2 { font-size: 24px; }
+  .result-bullets { grid-template-columns: 1fr; }
+}

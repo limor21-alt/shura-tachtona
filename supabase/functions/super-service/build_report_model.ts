@@ -167,6 +167,8 @@ function aggregateFixedCommitments(rows: NormalizedRow[], months: number) {
     label: g.label,
     monthly_amount: months > 0 ? Math.round(g.total / months) : 0,
     category: g.category,
+    occurrences: g.rows.length,
+    months_present: g.months_present.length,
     evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount }))
   }));
 }
@@ -176,6 +178,8 @@ function aggregateDebt(rows: NormalizedRow[], months: number) {
   return groups.map(g => ({
     label: g.label,
     monthly_amount: months > 0 ? Math.round(g.total / months) : 0,
+    occurrences: g.rows.length,
+    months_present: g.months_present.length,
     evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount }))
   }));
 }
@@ -186,6 +190,8 @@ function aggregateFlexible(rows: NormalizedRow[], months: number) {
     label: g.label,
     monthly_avg: months > 0 ? Math.round(g.total / months) : 0,
     category: g.category,
+    occurrences: g.rows.length,
+    months_present: g.months_present.length,
     evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount }))
   }));
 }
@@ -196,19 +202,24 @@ function aggregateReviewOnly(rows: NormalizedRow[], months: number) {
     // For review-only items we often can't claim it's monthly. Show
     // monthly_avg only if we see ≥2 months; otherwise show period_total.
     const isRecurring = g.months_present.length >= 2;
+    const common = {
+      occurrences: g.rows.length,
+      months_present: g.months_present.length,
+      evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount })),
+    };
     if (isRecurring) {
       return {
         label: g.label,
         monthly_avg: months > 0 ? Math.round(g.total / months) : 0,
         reason: "לבדוק אם ההוצאה מוצדקת חודשית",
-        evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount }))
+        ...common,
       };
     }
     return {
       label: g.label,
       period_total: Math.round(g.total),
       reason: "תנועות שדורשות סקירה — לא סווגו אוטומטית",
-      evidence: g.rows.slice(0, 3).map(r => ({ date: r.date, amount: r.amount }))
+      ...common,
     };
   });
 }

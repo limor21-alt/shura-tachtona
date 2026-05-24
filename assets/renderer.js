@@ -175,6 +175,110 @@ function renderImprovements(model) {
   );
 }
 
+// Collect every expense item across categories with its monthly amount
+// and how many months it appeared in. Anything appearing in ≥2 months
+// is considered "recurring" and gets surfaced in its own panel.
+function collectRecurringItems(model) {
+  const em = model.expense_model || {};
+  const items = [];
+  for (const f of em.fixed_commitments || []) {
+    items.push({
+      label: f.label,
+      monthly: f.monthly_amount,
+      months_present: f.months_present ?? 0,
+      occurrences: f.occurrences ?? 0,
+      category: f.category || "התחייבויות קבועות",
+      kind: "fixed",
+    });
+  }
+  for (const d of em.debt_payments || []) {
+    items.push({
+      label: d.label,
+      monthly: d.monthly_amount,
+      months_present: d.months_present ?? 0,
+      occurrences: d.occurrences ?? 0,
+      category: "חוב והלוואות",
+      kind: "debt",
+    });
+  }
+  for (const f of em.flexible_spending || []) {
+    items.push({
+      label: f.label,
+      monthly: f.monthly_avg,
+      months_present: f.months_present ?? 0,
+      occurrences: f.occurrences ?? 0,
+      category: f.category || "הוצאות גמישות",
+      kind: "flexible",
+    });
+  }
+  for (const r of em.review_only_items || []) {
+    items.push({
+      label: r.label,
+      monthly: r.monthly_avg ?? 0,
+      months_present: r.months_present ?? 0,
+      occurrences: r.occurrences ?? 0,
+      category: /netflix|spotify|icloud|apple|disney|hbo|youtube|chatgpt|openai|מנוי/i.test(r.label)
+        ? "מנויים ושירותים דיגיטליים"
+        : /bit|paybox|paypal/i.test(r.label)
+          ? "העברות אפליקציה"
+          : "לבדיקה",
+      kind: "review",
+    });
+  }
+  return items.filter(i => i.months_present >= 2 && i.monthly > 0);
+}
+
+function renderRecurringBreakdown(model) {
+  const recurring = collectRecurringItems(model);
+  if (recurring.length === 0) return null;
+
+  // Group by category, sort categories by total descending.
+  const byCat = new Map();
+  for (const it of recurring) {
+    const arr = byCat.get(it.category) || [];
+    arr.push(it);
+    byCat.set(it.category, arr);
+  }
+  const groups = Array.from(byCat.entries())
+    .map(([cat, items]) => ({
+      cat,
+      items: items.slice().sort((a, b) => b.monthly - a.monthly),
+      total: items.reduce((s, i) => s + i.monthly, 0),
+      count: items.length,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const grandTotal = groups.reduce((s, g) => s + g.total, 0);
+  const grandCount = groups.reduce((s, g) => s + g.count, 0);
+
+  return el("section", { class: "report-section card" },
+    el("h2", { class: "section-title" }, "הוצאות חוזרות לפי ספק"),
+    el("p", { class: "text-secondary mb-16", style: "margin-top:0;font-size:14px;" },
+      `${grandCount} ספקים שחוזרים לפחות בחודשיים — ${formatILS(grandTotal)} סך הכל בחודש.`),
+    ...groups.map(g => el("div", { style: "margin-bottom:18px;" },
+      el("div", {
+        style: "display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);font-weight:600;",
+      },
+        el("span", {}, `${g.cat} · ${g.count}`),
+        el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(g.total)}/חודש`),
+      ),
+      ...g.items.map(it => el("div", {
+        style: "display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px;",
+      },
+        el("span", { class: "nb-label" }, it.label),
+        el("span", {
+          class: "text-tertiary",
+          style: "font-size:12px;",
+        }, `${it.months_present} חודשים`),
+        el("span", {
+          class: "area-amount",
+          style: "font-variant-numeric:tabular-nums;",
+        }, formatILS(it.monthly)),
+      )),
+    )),
+  );
+}
+
 function renderFindingsByArea(model) {
   const list = model.findings_by_area || [];
   if (list.length === 0) return null;
@@ -277,7 +381,19 @@ function buildSectionRenderers(handlers) {
     scenario_comparison:   () => null, // already inside renderSummary
     check_first:           (m) => renderPriorityChecks(m),
     control_opportunities: (m) => renderImprovements(m),
-    details_by_area:       (m) => renderFindingsByArea(m),
+    // The recurring-vendor breakdown is the product's AHA moment:
+    // consolidated per-vendor recurring spend with month-count badges,
+    // grouped by category. Rendered as part of details_by_area so it
+    // appears in the same slot whether or not the playbook ui_structure
+    // includes it explicitly.
+    details_by_area:       (m) => {
+      const wrap = document.createDocumentFragment();
+      const recurring = renderRecurringBreakdown(m);
+      if (recurring) wrap.appendChild(recurring);
+      const areas = renderFindingsByArea(m);
+      if (areas) wrap.appendChild(areas);
+      return wrap.childNodes.length > 0 ? wrap : null;
+    },
     classify_later:        (m) => renderNonBlocking(m),
     audit_trail:           (m) => renderAuditTrail(m),
     export:                (m) => renderExport(m, handlers),

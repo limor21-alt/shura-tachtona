@@ -12,11 +12,13 @@ import { buildContext, rowRef, type RuleFn, type RuleResult } from "./helpers.ts
 import { ruleCcDedup }            from "./rules_cc_dedup.ts";
 import { ruleUtilities }          from "./rules_utilities.ts";
 import { ruleDebt }               from "./rules_debt.ts";
+import { ruleHousingRent }        from "./rules_housing_rent.ts";
 import { ruleBitPaybox }          from "./rules_bit_paybox.ts";
 import { ruleSubscriptions }      from "./rules_subscriptions.ts";
 import { ruleMedicalKidsBeauty }  from "./rules_medical_kids_beauty.ts";
 import { ruleFlexibleWolt }       from "./rules_flexible_wolt.ts";
-import { ruleKnownMerchants }     from "./rules_known_merchants.ts";
+// ruleKnownMerchants superseded by ruleRecurringPromote (variance-aware).
+import { ruleRecurringPromote }   from "./rules_recurring_promote.ts";
 
 import { ruleSalary }             from "./rules_salary.ts";
 import { rulePartnerIncome }      from "./rules_partner_income.ts";
@@ -26,12 +28,13 @@ import { ruleSavingsOnetime }     from "./rules_savings_onetime.ts";
 const EXPENSE_RULES: RuleFn[] = [
   ruleCcDedup,              // FIRST — never let CC charges through
   ruleUtilities,
-  ruleDebt,
+  ruleDebt,                 // mortgages / loans
+  ruleHousingRent,          // rent (separate from mortgage)
   ruleBitPaybox,
   ruleSubscriptions,
   ruleMedicalKidsBeauty,
   ruleFlexibleWolt,
-  ruleKnownMerchants
+  ruleRecurringPromote      // LAST — variance-aware: stable→fixed, variable→flexible
 ];
 
 /** Order for positive-amount (income) rows. */

@@ -291,6 +291,23 @@ export interface ReportModel {
    *  populates this; if non-empty, Claude output is rejected and
    *  deterministic fallback copy is used instead. */
   forbidden_word_violations: string[];
+
+  /** Playbook selection (Phase 2). Populated by buildReportModel via
+   *  factsToPlaybookFacts → selectPlaybooks. Optional so older snapshots
+   *  and the legacy frontend keep parsing. */
+  selected_playbooks?: {
+    primary: string;       // PlaybookId
+    secondary: string[];   // PlaybookId[]
+  };
+
+  /** UI structure derived from the selected playbook (Phase 2).
+   *  Section order is the playbook's recommendedSections for partial
+   *  reports, else FINAL_REPORT_SECTION_ORDER. */
+  ui_structure?: {
+    section_order: string[];                       // ReportSectionId[]
+    titles: Record<string, string>;
+    subtitles: Record<string, string>;
+  };
 }
 
 // ====================================================================

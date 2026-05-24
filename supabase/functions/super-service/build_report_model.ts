@@ -19,6 +19,8 @@ import type {
 } from "./schema.ts";
 import { normalizeDesc, monthOf } from "./classify/helpers.ts";
 import { assertAllInvariants } from "./validators/invariants.ts";
+import { factsToPlaybookFacts } from "./playbook_adapter.ts";
+import { selectPlaybooks, buildReportUIStructure } from "./playbooks.ts";
 
 // ====================================================================
 // Thresholds
@@ -623,6 +625,26 @@ export function buildReportModel(
     export_data: { json_blob_ref: null, pdf_url: null, csv_url: null },
     parser_warnings: facts.parser_warnings,
     forbidden_word_violations: []
+  };
+
+  // ----- Playbook selection (Phase 2) -----
+  // Derive a playbook-shaped facts view from the assembled model and select
+  // one primary diagnosis + up to 5 secondary findings. Attach the selection
+  // and the derived UI structure to the model so the frontend (or copy_writer
+  // in Phase 2b) can render section order/titles deterministically.
+  const playbookFacts = factsToPlaybookFacts(facts, model);
+  const { primary, secondary } = selectPlaybooks(playbookFacts);
+  const uiStructure = buildReportUIStructure(primary, secondary, playbookFacts);
+  model.selected_playbooks = {
+    primary: primary.id,
+    secondary: secondary.map(p => p.id)
+  };
+  model.ui_structure = {
+    section_order: uiStructure.sectionOrder,
+    titles: uiStructure.titles,
+    subtitles: Object.fromEntries(
+      Object.entries(uiStructure.subtitles).filter(([, v]) => typeof v === "string")
+    ) as Record<string, string>
   };
 
   assertAllInvariants(model);

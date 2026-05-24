@@ -92,6 +92,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
@@ -102,311 +103,253 @@
       <nav class="step-indicator" id="step-indicator" aria-label="התקדמות במסע"></nav>
     </div>
   </header>
-
   <div id="landing" class="landing-page">
 
+    <header class="lp-header">
+      <div class="lp-header-inner">
+        <div class="lp-logo">שורה תחתונה<span class="lp-logo-dot"></span></div>
+        <button class="lp-header-cta" data-action="start">להתחיל אבחון</button>
+      </div>
+    </header>
+
     <!-- ============== HERO ============== -->
-    <section class="landing-hero">
-      <div class="container">
-        <div class="hero-grid">
+    <section class="lp-hero">
+      <div class="lp-hero-inner">
+        <div class="lp-hero-badge">
+          <span class="lp-hero-badge-dot"></span>
+          <span>ניתוח אחד · ללא מנוי · תוצאה תוך 3 דקות</span>
+        </div>
 
-          <div class="hero-text-col">
-            <div class="hero-eyebrow">בדיקה פיננסית חד־פעמית · בעברית</div>
-            <h1 class="hero">גלו מה באמת קורה בכסף שלכם</h1>
-            <p class="subhero">מעלים תדפיסי עו״ש וכרטיסי אשראי, ומקבלים בדיקה פיננסית עם תוצאות והמלצות: מה נכנס, מה יוצא, איפה נוצר הפער ומה כדאי לעשות קודם.</p>
+        <h1 class="lp-hero-h1">
+          גלו <span class="lp-highlight">מה באמת קורה</span><br>
+          בכסף שלכם
+        </h1>
 
-            <ul class="hero-pills" aria-label="מה זה לא דורש">
-              <li>בלי להוריד אפליקציה</li>
-              <li>בלי ניהול אקסלים</li>
-              <li>בלי מעקבים יומיים</li>
-              <li>בלי התחייבות</li>
-            </ul>
+        <p class="lp-hero-sub">
+          העלו דוחות בנק ואשראי, ואנחנו נעבור עליהם בשבילכם.
+          נפריד הכנסה קבועה ממשתנה, נזהה הוצאות קבועות וגמישות,
+          ונחזיר לכם שורה תחתונה ברורה — בלי להתחבר לבנק.
+        </p>
 
-            <div class="hero-cta-row">
-              <button class="btn btn-primary btn-lg" data-action="start">התחילו את הבדיקה</button>
-              <span class="hero-cta-affirm"><strong>כ־5 דקות</strong> · חינם · ללא הרשמה</span>
-            </div>
+        <button class="lp-hero-cta" data-action="start">
+          להתחיל אבחון
+          <svg class="lp-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
 
-            <p class="hero-empathy">מתאים גם למי שיודע שצריך לעשות סדר אבל אין לו כוח להתחיל.</p>
+        <div class="lp-trust-bullets">
+          <div class="lp-trust-bullet">
+            <svg class="lp-trust-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            לא מתחברים לבנק
           </div>
-
-          <div class="hero-visual" aria-hidden="true">
-            <div class="hero-outcome">
-              <span class="hero-sample-tag">דוגמה לדוח</span>
-              <div class="hero-outcome-eyebrow">השורה התחתונה</div>
-              <div class="hero-outcome-headline">המשכורת מכסה את הקבוע — ונשאר מרחב לחיים</div>
-              <div class="hero-outcome-rows">
-                <div class="hero-outcome-row">
-                  <span class="label">הכנסה קבועה</span>
-                  <span class="value">₪18,420</span>
-                </div>
-                <div class="hero-outcome-row">
-                  <span class="label">הוצאות חודשיות</span>
-                  <span class="value">₪16,030</span>
-                </div>
-                <div class="hero-outcome-row highlight">
-                  <span class="label">עודף מחושב</span>
-                  <span class="value">₪2,390</span>
-                </div>
-              </div>
-              <div class="hero-outcome-checks">
-                <div class="hero-outcome-check">287 תנועות נסקרו</div>
-                <div class="hero-outcome-check">4 חיובים חד־פעמיים זוהו</div>
-                <div class="hero-outcome-check">0 ספירות כפולות של אשראי</div>
-              </div>
-            </div>
+          <div class="lp-trust-bullet">
+            <svg class="lp-trust-icon" viewBox="0 0 24 24"><circle cx="12" cy="16" r="1"></circle><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            לא מבקשים סיסמאות
           </div>
-
+          <div class="lp-trust-bullet">
+            <svg class="lp-trust-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            רק קבצים שאתם מעלים
+          </div>
+          <div class="lp-trust-bullet">
+            <svg class="lp-trust-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            לא ייעוץ פיננסי
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ============== TRUST STRIP ============== -->
-    <section class="trust-strip" aria-label="הבטחות בסיסיות">
-      <div class="container trust-strip-inner">
-        <div class="trust-strip-item">
-          <span class="trust-icon trust-icon-lock"></span>
-          <span>לא מתחברים לבנק. לא מבקשים סיסמאות.</span>
+    <!-- ============== HOW ============== -->
+    <section class="lp-section lp-how">
+      <div class="lp-section-inner">
+        <div class="lp-section-header">
+          <div class="lp-section-eyebrow">איך זה עובד</div>
+          <h2 class="lp-section-title">שלושה צעדים פשוטים</h2>
+          <p class="lp-section-sub">כל מה שצריך כדי לראות את התמונה האמיתית.</p>
         </div>
-        <div class="trust-strip-item">
-          <span class="trust-icon trust-icon-trash"></span>
-          <span>הקבצים נמחקים אחרי הבדיקה.</span>
-        </div>
-        <div class="trust-strip-item">
-          <span class="trust-icon trust-icon-il"></span>
-          <span>בעברית, לבנקים וכרטיסי אשראי ישראליים.</span>
+        <div class="lp-steps">
+          <div class="lp-step">
+            <div class="lp-step-number">01</div>
+            <h3 class="lp-step-title">מעלים קבצים</h3>
+            <p class="lp-step-body">דוחות עו"ש וכרטיסי אשראי מהבנק שלכם. מומלץ 3 חודשים אחורה.</p>
+          </div>
+          <div class="lp-step">
+            <div class="lp-step-number">02</div>
+            <h3 class="lp-step-title">עונים על מה שצריך</h3>
+            <p class="lp-step-body">אנחנו נשאל רק את השאלות שבאמת משנות את התמונה. בדרך כלל 1-3, לא יותר.</p>
+          </div>
+          <div class="lp-step">
+            <div class="lp-step-number">03</div>
+            <h3 class="lp-step-title">מקבלים דוח ברור</h3>
+            <p class="lp-step-body">תמונה אמינה של ההכנסות וההוצאות — מה קבוע, מה גמיש, ומה כדאי לבדוק.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ============== WHAT YOU GET ============== -->
-    <section class="landing-section landing-result">
-      <div class="container">
-        <h2>מה יהיה לכם ביד בסוף</h2>
-        <p class="section-sub">לא עוד טבלת הוצאות. בדיקה שחוסכת לכם לעבור על הקבצים לבד.</p>
-
-        <div class="result-grid">
-          <ul class="result-bullets">
-            <li data-eyebrow="מה תקבלו">
-              <strong>שורה תחתונה ברורה</strong>
-              <span>עודף, איזון או פער חודשי — מספר אחד, עם הסבר.</span>
-            </li>
-            <li data-eyebrow="מה יכול להתגלות">
-              <strong>מה משנה את התמונה</strong>
-              <span>הכנסה חסרה, עסקה לא ברורה, הוצאה חד־פעמית — לפני שמקצצים.</span>
-            </li>
-            <li data-eyebrow="מה עושים קודם">
-              <strong>מה לבדוק קודם</strong>
-              <span>המלצות לפי סדר עדיפות, עם הסבר למה כל אחת קודמת לבאה.</span>
-            </li>
-            <li data-eyebrow="מה קל לפספס">
-              <strong>מה קשה לראות לבד</strong>
-              <span>דפוסים שחוזרים, מנויים מפוזרים, כפילויות — שקל לפספס.</span>
-            </li>
-          </ul>
-          <div class="result-preview">
-            <img src="assets/img/report-preview.png"
-                 alt="דוגמה לדוח שורה תחתונה — השורה התחתונה, מה לבדוק, פירוט לפי תחומים"
-                 loading="lazy" />
-            <div class="result-preview-caption">דוגמה לדוח — נתונים מוצגים לדמו</div>
-          </div>
+    <!-- ============== FEATURES ============== -->
+    <section class="lp-section lp-features">
+      <div class="lp-section-inner">
+        <div class="lp-section-header">
+          <div class="lp-section-eyebrow">מה תקבלו</div>
+          <h2 class="lp-section-title">דוח שאתם באמת מבינים</h2>
+          <p class="lp-section-sub">לא קטגוריות סתמיות. אבחון אמיתי שמראה לכם איפה יש שליטה.</p>
         </div>
-
-        <p class="result-disclaimer">זו הערכה, לא הבטחה. הבדיקה אינה מחליפה ייעוץ פיננסי מקצועי.</p>
-      </div>
-    </section>
-
-    <!-- ============== HOW IT WORKS ============== -->
-    <section class="landing-section landing-how">
-      <div class="container">
-        <h2>שלושה צעדים. בלי בלגן.</h2>
-        <ol class="how-steps">
-          <li>
-            <span class="step-num">1</span>
-            <h3>מעלים את הקבצים</h3>
-            <p>תדפיסי עו״ש וכרטיסי אשראי שכבר ייצאתם מהבנק. 2–3 חודשים מספיקים לתמונה ראשונית.</p>
-          </li>
-          <li>
-            <span class="step-num">2</span>
-            <h3>אנחנו עוברים עליהם</h3>
-            <p>מפרידים הכנסה קבועה ממשתנה, מנקים חיובי אשראי כפולים, מסמנים פריטים חד־פעמיים. שואלים רק אם חייבים.</p>
-          </li>
-          <li>
-            <span class="step-num">3</span>
-            <h3>מקבלים בדיקה</h3>
-            <p>שורה תחתונה, מה לבדוק קודם, איפה יש שליטה — בעברית, בלי הטפה.</p>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <!-- ============== COMPARISON ============== -->
-    <section class="landing-section landing-compare">
-      <div class="container">
-        <h2>במה זה שונה ממה שכבר ניסיתם?</h2>
-        <p class="section-sub">לא אפליקציית תקציב. לא אקסל. לא יועץ. בדיקה ראשונית שעונה על שאלה אחת.</p>
-
-        <div class="compare-grid">
-          <div class="compare-card">
-            <h3>אפליקציות תקציב</h3>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-them">הן</span>
-              <p>מצוינות למעקב שוטף, סיווג יומיומי, גרפים על פני זמן.</p>
-            </div>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-us">אצלנו</span>
-              <p>בדיקה חד־פעמית. תמונה מיידית, בלי התחייבות לניהול שוטף.</p>
-            </div>
+        <div class="lp-features-grid">
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+            <h3 class="lp-feature-title">תמונת ההכנסות</h3>
+            <p class="lp-feature-body">הפרדה ברורה בין הכנסה קבועה, משתנה, וסכומים חד-פעמיים שלא צריך לחשב כהכנסה רגילה.</p>
           </div>
-
-          <div class="compare-card">
-            <h3>אקסל עצמאי</h3>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-them">הוא</span>
-              <p>נותן שליטה מלאה, חינמי לחלוטין, מותאם אישית.</p>
-            </div>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-us">אצלנו</span>
-              <p>לא צריך לבנות כלום. מעלים קובץ קיים — מקבלים תשובה.</p>
-            </div>
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
+            <h3 class="lp-feature-title">תמונת ההוצאות</h3>
+            <p class="lp-feature-body">חלוקה בין התחייבויות קבועות, הוצאות גמישות, וסעיפים שכדאי לבדוק לעומק.</p>
           </div>
-
-          <div class="compare-card">
-            <h3>יועץ פיננסי</h3>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-them">הוא</span>
-              <p>מתאים למצבים מורכבים, תכנון לטווח ארוך, ליווי אישי.</p>
-            </div>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-us">אצלנו</span>
-              <p>בדיקה ראשונית מהירה — לפני שמחליטים אם צריך יועץ.</p>
-            </div>
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+            <h3 class="lp-feature-title">השורה התחתונה</h3>
+            <p class="lp-feature-body">עודף או חוסר חודשי, מבוסס על הסיווגים שאתם אישרתם — לא על ניחושים.</p>
           </div>
-
-          <div class="compare-card">
-            <h3>אפליקציות בנק</h3>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-them">הן</span>
-              <p>מציגות מידע בזמן אמת מהחשבון, חיבור אונליין רציף.</p>
-            </div>
-            <div class="compare-row">
-              <span class="compare-tag compare-tag-us">אצלנו</span>
-              <p>לא מחוברים לבנק. רואים את כל הכרטיסים יחד, גם ממוסדות שונים.</p>
-            </div>
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+            <h3 class="lp-feature-title">דברים שכדאי לבדוק</h3>
+            <p class="lp-feature-body">דליפות קטנות שמצטברות, מנויים שאולי כפולים, חיובים שאולי מיותרים.</p>
           </div>
-        </div>
-
-        <p class="compare-summary">אנחנו לא מנסים לנהל לכם את החיים הפיננסיים. אנחנו עונים על שאלה אחת: מה קורה בקבצים שהעליתם, מה יוצר את הפער, ומאיפה כדאי להתחיל.</p>
-      </div>
-    </section>
-
-    <!-- ============== AUDIENCE ============== -->
-    <section class="landing-section landing-audience">
-      <div class="container">
-        <h2>למי זה מתאים?</h2>
-        <p class="section-sub">לכל מי שמרגיש שהכסף נכנס — אבל לא נשאר.</p>
-
-        <ul class="audience-list">
-          <li>רווקים שרוצים להבין למה לא מצליחים לחסוך</li>
-          <li>זוגות שמתחילים חיים כלכליים משותפים</li>
-          <li>משפחות עם הרבה הוצאות קבועות ומשתנות</li>
-          <li>אנשים עם הלוואות, מינוס או תשלומים שמכבידים</li>
-          <li>עצמאים ושכירים עם הכנסות משתנות</li>
-          <li>כל מי שאין לו זמן לנהל תקציב — אבל רוצה להבין</li>
-        </ul>
-
-        <div class="audience-emphasis">
-          <p><strong>לא צריך להיות במינוס כדי להרוויח מהבדיקה.</strong></p>
-          <p>רוב האנשים לא יודעים בדיוק לאן הכסף הולך — ומה אפשר לשנות בלי לשנות את אורח החיים.</p>
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-7 7c0 3 2 5 2 7v2h10v-2c0-2 2-4 2-7a7 7 0 0 0-7-7z"></path></svg></div>
+            <h3 class="lp-feature-title">איפה יש שליטה</h3>
+            <p class="lp-feature-body">זיהוי הוצאות גמישות שאתם יכולים לשנות, בנפרד מהתחייבויות קבועות שלא.</p>
+          </div>
+          <div class="lp-feature">
+            <div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></div>
+            <h3 class="lp-feature-title">ייצוא מלא</h3>
+            <p class="lp-feature-body">PDF להורדה, נתונים מסודרים לפי קטגוריות, הכל שלכם להמשיך לעבוד איתו.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ============== HONESTY MOMENT ============== -->
-    <section class="landing-section landing-honesty">
-      <div class="container">
-        <blockquote class="honesty-quote">
-          <p>אנחנו לא מבטיחים שתחסכו 30%.</p>
-          <p>אנחנו מבטיחים שתראו את התמונה כפי שהיא, ותדעו מאיפה להתחיל.</p>
-        </blockquote>
+    <!-- ============== NOT ============== -->
+    <section class="lp-section lp-not">
+      <div class="lp-section-inner">
+        <div class="lp-section-header">
+          <div class="lp-section-eyebrow">בלי הבטחות שווא</div>
+          <h2 class="lp-section-title">מה שורה תחתונה איננה</h2>
+        </div>
+        <div class="lp-not-grid">
+          <div class="lp-not-card">
+            <span class="lp-not-icon">⊘</span>
+            <h3 class="lp-not-title">לא אפליקציית תקציב</h3>
+            <p class="lp-not-body">לא מבקשים מכם לרשום כל הוצאה. מעלים קבצים, אנחנו עושים את העבודה.</p>
+          </div>
+          <div class="lp-not-card">
+            <span class="lp-not-icon">⊘</span>
+            <h3 class="lp-not-title">לא יועץ פיננסי</h3>
+            <p class="lp-not-body">לא ממליצים על השקעות, הלוואות או ביטוחים. רק מראים את התמונה.</p>
+          </div>
+          <div class="lp-not-card">
+            <span class="lp-not-icon">⊘</span>
+            <h3 class="lp-not-title">לא דוח הפחדה</h3>
+            <p class="lp-not-body">בלי "אתם בזבזנים", בלי "המצב חמור". רק עובדות, בשפה אנושית.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ============== PRIVACY ============== -->
-    <section class="landing-section landing-privacy">
-      <div class="container">
-        <h2>מה קורה עם הקבצים?</h2>
-        <p class="privacy-body">הקבצים עצמם אינם נשמרים אצלנו. הנתונים מתוך הקבצים משמשים לבדיקה בלבד ונמחקים אחריה.</p>
-
-        <ul class="privacy-marks">
-          <li>בלי חיבור לבנק</li>
-          <li>בלי שמירת קבצים</li>
-          <li>בלי מנוי</li>
-        </ul>
-
-        <p class="privacy-footnote">הבדיקה אינה מחליפה ייעוץ פיננסי, מיסויי, ביטוחי או השקעות. במקרים מורכבים כדאי לפנות לאיש מקצוע מוסמך.</p>
+    <section class="lp-section lp-privacy">
+      <div class="lp-section-inner">
+        <div class="lp-section-header">
+          <div class="lp-section-eyebrow">פרטיות</div>
+          <h2 class="lp-section-title">הפרטיות שלכם — לפני הכל</h2>
+        </div>
+        <div class="lp-privacy-grid">
+          <div class="lp-privacy-card">
+            <div class="lp-privacy-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+            <div class="lp-privacy-content"><h3>לא מתחברים לבנק</h3><p>אתם מעלים את הקבצים בעצמכם. אין שום חיבור ישיר לחשבון.</p></div>
+          </div>
+          <div class="lp-privacy-card">
+            <div class="lp-privacy-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="16" r="1"></circle><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+            <div class="lp-privacy-content"><h3>לא מבקשים סיסמאות</h3><p>שם משתמש, סיסמה, OTP — שום דבר. רק קבצי Excel שאתם בוחרים.</p></div>
+          </div>
+          <div class="lp-privacy-card">
+            <div class="lp-privacy-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
+            <div class="lp-privacy-content"><h3>הקבצים משמשים לניתוח בלבד</h3><p>לא נשמרים אצלנו אחרי שהדוח מוכן. הנתונים שלכם — שלכם.</p></div>
+          </div>
+          <div class="lp-privacy-card">
+            <div class="lp-privacy-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+            <div class="lp-privacy-content"><h3>מספרי חשבון מוסתרים</h3><p>במידת האפשר, פרטים מזהים מוסתרים מהדוח עצמו.</p></div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ============== FAQ ============== -->
-    <section class="landing-section landing-faq">
-      <div class="container">
-        <h2>שאלות נפוצות</h2>
-        <div class="faq-list">
-
-          <details class="faq-item">
-            <summary>איזה קבצים צריך להעלות?</summary>
-            <p>תדפיסי עו״ש וכרטיסי אשראי בפורמט Excel — אלה שמייצאים מאתר הבנק או מחברת האשראי. עדיף 2–3 חודשים אחורה כדי לראות תמונה יציבה ולא חודש חריג.</p>
+    <section class="lp-section lp-faq">
+      <div class="lp-section-inner">
+        <div class="lp-section-header">
+          <div class="lp-section-eyebrow">שאלות נפוצות</div>
+          <h2 class="lp-section-title">מה שאתם רוצים לדעת</h2>
+        </div>
+        <div class="lp-faq-list">
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>כמה זמן לוקח לקבל את הדוח?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">בדרך כלל 2-3 דקות מרגע ההעלאה. אם יש שאלות הבהרה — תלוי בכם.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>האם צריך לחבר את חשבון הבנק?</summary>
-            <p>לא. אנחנו לא מתחברים לבנק ולא מבקשים שם משתמש או סיסמה. אתם מורידים את הקבצים מהבנק שלכם ומעלים רק אותם.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>אילו קבצים אני צריך/ה להעלות?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">דוח עו"ש (פלט Excel מהבנק) ודוחות כרטיסי אשראי. מומלץ 3 חודשים אחורה.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>האם צריך להוריד אפליקציה?</summary>
-            <p>לא. הכל רץ בדפדפן. בלי הורדה, בלי הרשמה, בלי מנוי.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>מה אם יש לי רק חלק מהקבצים?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">אפשר. נציג דוח חלקי ונסמן בדיוק מה אפשר ומה אי אפשר לדעת בלי הנתונים החסרים.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>האם הקבצים נשמרים אצלכם?</summary>
-            <p>לא. הקבצים עצמם אינם נשמרים. הנתונים מתוכם משמשים לבדיקה בלבד ונמחקים אחריה.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>האם זה עובד עם כל הבנקים בישראל?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">כן — פועלים, לאומי, דיסקונט, מזרחי, הבינלאומי, וכל הבנקים שמנפיקים פלט Excel. גם מקס, ישראכרט, כאל וויזה.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>מה מקבלים בסוף הבדיקה?</summary>
-            <p>דוח אחד עם שורה תחתונה ברורה, מה משנה את התמונה, מה לבדוק קודם, ופירוט לפי תחומים: דיור, מזון, תחבורה, חשבונות, חוב, מנויים.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>מה קורה אם יש לי הכנסה לא קבועה?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">זה אחד הדברים שהמערכת בודקת במיוחד. אנחנו לא מערבבים הכנסה קבועה במשתנה — ומראים שני תרחישים אם צריך.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>האם זה מחליף יועץ פיננסי?</summary>
-            <p>לא. הבדיקה היא תמונת מצב ראשונית ומדוייקת — לא ייעוץ. אם המצב מורכב או מצריך החלטות גדולות, כדאי לפנות לאיש מקצוע מוסמך.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>האם הקבצים שלי נשמרים?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">לא לאחר שהדוח מוכן. הניתוח מתבצע ברגע ההעלאה, והקבצים נמחקים אחרי כן.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>כמה זה עולה?</summary>
-            <p>כרגע השירות חינמי במסגרת השקה. אין מנוי, אין התחייבות. ייתכן שבעתיד נציע אותו במחיר השקה סמלי לבדיקה חד־פעמית.</p>
+          <details class="lp-faq-item">
+            <summary class="lp-faq-summary"><span>כמה זה עולה?</span><svg class="lp-faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+            <div class="lp-faq-body">ניתוח אחד — מחיר חד-פעמי. ללא מנוי, ללא חיובים חוזרים.</div>
           </details>
-
-          <details class="faq-item">
-            <summary>למי זה מתאים?</summary>
-            <p>לרווקים, זוגות, משפחות, עצמאים, שכירים — ולמי שיש חובות, מינוס או הכנסה משתנה. לא צריך להיות במינוס כדי להרוויח מהבדיקה.</p>
-          </details>
-
         </div>
       </div>
     </section>
 
     <!-- ============== FINAL CTA ============== -->
-    <section class="landing-section landing-final-cta">
-      <div class="container">
-        <h2>רוצים להבין לאן הכסף הולך?</h2>
-        <p>העלו תדפיסים קיימים וקבלו שורה תחתונה ברורה: מה קורה, למה זה קורה, ומה כדאי לעשות קודם.</p>
-        <button class="btn btn-primary btn-lg" data-action="start">התחילו את הבדיקה</button>
-        <p class="final-cta-micro"><strong>כ־5 דקות</strong> · בלי חיבור לבנק · בלי להוריד אפליקציה</p>
+    <section class="lp-final-cta">
+      <div class="lp-final-cta-inner">
+        <h2>מוכנים לראות את התמונה האמיתית?</h2>
+        <p class="lp-final-cta-sub">שלוש דקות שלכם, ואתם תדעו בדיוק לאן הולך הכסף.</p>
+        <button class="lp-final-cta-btn" data-action="start">
+          להתחיל אבחון עכשיו
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <p class="lp-final-cta-meta">אין הרשמה · אין מנוי · רק קבצים שאתם מעלים</p>
       </div>
     </section>
+
+    <!-- ============== FOOTER ============== -->
+    <footer class="lp-footer">
+      <div class="lp-footer-inner">
+        <div class="lp-footer-copy">© 2026 שורה תחתונה. כל הזכויות שמורות.</div>
+        <div class="lp-footer-links">
+          <a href="#">פרטיות</a>
+          <a href="#">תנאי שימוש</a>
+          <a href="#">צור קשר</a>
+        </div>
+      </div>
+    </footer>
 
   </div>
 

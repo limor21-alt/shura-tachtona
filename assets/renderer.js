@@ -270,6 +270,127 @@ function collectRecurringItems(model) {
   return items.filter(i => i.months_present >= 2 && i.monthly > 0);
 }
 
+// ---- semantic sub-grouping ----------------------------------------
+// Keyword-based renderer-side grouping. Cosmetic only — it doesn't touch
+// the classification audit trail or the pipeline's category assignment.
+// Order matters: first match wins. "Other" (no emoji) is the fallback.
+
+const VENDOR_SUBCATEGORIES = [
+  {
+    id: "ai_dev", label: "🤖 כלי AI, פיתוח ואוטומציה",
+    patterns: [
+      /claude/i, /anthropic/i, /chatgpt/i, /openai/i, /lovable/i,
+      /\bcursor\b/i, /heygen/i, /eleven\s?labs/i, /replit/i, /midjourney/i,
+      /perplexity/i, /copilot/i, /\brunway\b/i, /soundtype/i, /transcribe/i,
+      /transkriptor/i, /github/i, /vercel/i, /supabase/i, /\bn8n\b/i,
+      /\bzapier\b/i, /make\.com/i, /notion/i, /linear\.app/i, /figma/i,
+      /\bgpt\b/i, /\bllm\b/i,
+    ],
+  },
+  {
+    id: "media", label: "🎬 מדיה, וידאו ומנויים",
+    patterns: [
+      /netflix/i, /spotify/i, /disney/i, /\bhbo\b/i, /youtube/i,
+      /apple\.?com/i, /\bitunes\b/i, /capcut/i, /\badobe\b/i,
+      /amazon\s+prime/i, /prime\s+video/i, /paramount/i, /\bpluto\b/i,
+      /\bkan\b/i, /\bsting\b/i, /\bstingtv/i,
+    ],
+  },
+  {
+    id: "telecom_tv", label: "📺 תקשורת וטלוויזיה",
+    patterns: [
+      /cellcom/i, /סלקום/, /partner/i, /פרטנר/, /pelephone/i, /פלאפון/,
+      /bezeq/i, /בזק/, /\bhot\b/i, /הוט\s/, /\byes\b/i, /יס\s|yes/i,
+      /golan/i, /גולן\s*טלקום/, /xphone/i, /טריפל/,
+    ],
+  },
+  {
+    id: "cloud", label: "☁️ אחסון בענן",
+    patterns: [/icloud/i, /google\s*one/i, /dropbox/i, /onedrive/i, /\bbox\.com/i],
+  },
+  {
+    id: "supermarket", label: "🛒 סופר ומכולת",
+    patterns: [
+      /שופרסל/, /רמי\s*לוי/, /ויקטורי/, /יוחננוף/, /מרכולבו/, /אקספרס/,
+      /קינמון/, /סופר\b/, /סופרטל/, /ירקני?ה/, /מינימרקט/, /דליקטסן/,
+      /ג'ורנו/, /אושר עד/, /יינות\s*ביתן/, /tiv\s*ta?am/i, /טיב\s*טעם/,
+    ],
+  },
+  {
+    id: "delivery", label: "🍔 משלוחים ומסעדות",
+    patterns: [
+      /\bwolt\b/i, /ולט/, /\bgett?\b/i, /\bגט\b/, /ten\s?bis/i,
+      /תן\s*ביס/, /santi/i, /סנטי/, /restaurant/i, /מסעדה/, /קפה/,
+      /\bcoffee\b/i, /פאב/, /בורגר/, /burger/i, /\bpizza\b/i, /פיצה/,
+    ],
+  },
+  {
+    id: "transport", label: "🚗 דלק ותחבורה",
+    patterns: [
+      /דלק/, /סונול/, /\bpaz\b/i, /דור\s*אלון/, /sonol/i,
+      /כביש\s*6/, /רכבת/, /חניה/, /pango/i, /פנגו/,
+      /cellopark/i, /סלופארק/, /\buber\b/i, /אובר/,
+    ],
+  },
+  {
+    id: "utilities", label: "💡 חשבונות בית",
+    patterns: [
+      /חשמל/, /חברת\s*החשמל/, /electric/i, /\bwater\b/i, /מי\s*תקווה/,
+      /מי\s*עירוני/, /ועד\s*בית/, /גז\s*טבעי/, /\bבזן\b/,
+    ],
+  },
+  {
+    // Order matters — "ביטוח לאומי" (National Insurance / social
+    // security) must match BEFORE the generic insurance bucket, otherwise
+    // /ביטוח/ would grab it as commercial insurance.
+    id: "gov_social", label: "🏛 ממשלה וקצבאות",
+    patterns: [
+      /ביטוח\s*לאומי/, /מס\s+הכנסה/, /רשות\s*המסים/, /ארנונה/,
+      /משרד\s*הבריאות/, /משרד\s*הפנים/,
+    ],
+  },
+  {
+    id: "insurance", label: "🛡 ביטוחים",
+    patterns: [
+      /ביטוח/, /מנורה/, /הראל/, /\bמגדל\b/, /הפניקס/,
+      /menorah/i, /harel/i, /phoenix/i, /איילון/,
+    ],
+  },
+  {
+    id: "bank", label: "🏦 בנק והלוואות",
+    patterns: [
+      /הלוואה/, /ריבית/, /משכנת/, /עמלה/,
+      /interest/i, /משיכת\s*יתר/, /מינוס/, /חיוב\s*ריבית/,
+    ],
+  },
+  {
+    id: "education", label: "👨‍👩‍👦 חינוך וחוגים",
+    // Education-related only. Generic patterns like "גן" or "גני תקווה"
+    // were dropped — they were catching local stores/cafes whose name
+    // happens to include the city name.
+    patterns: [
+      /צהרון/, /בית\s*ספר/, /חוגים?\b/, /קייטנ/, /\bמתנס\b/,
+      /גן\s*ילדים/, /הוראה\s+פרטית/, /שיעור[יים]?\s*פרטי/,
+    ],
+  },
+  {
+    id: "pharmacy_health", label: "💊 בריאות ופארם",
+    patterns: [
+      /\bפארם\b/, /\bsuperpharm\b/i, /סופר\s*פארם/, /רופא/, /מרפא/,
+      /מכבי/, /כללית/, /מאוחדת/, /\bלאומית\b/, /iherb/i, /\bאיהרב\b/,
+      /אופטיק/i,
+    ],
+  },
+];
+
+function subcategorize(label) {
+  const text = String(label || "");
+  for (const sc of VENDOR_SUBCATEGORIES) {
+    if (sc.patterns.some(re => re.test(text))) return sc;
+  }
+  return { id: "other", label: "אחר" };
+}
+
 // ---- per-vendor monthly history + anomaly detection ---------------
 // The pipeline puts each transaction that contributed to a vendor's
 // monthly total into `evidence: [{date, amount}]`. We use that here to
@@ -394,15 +515,44 @@ function renderRecurringBreakdown(model, handlers) {
         : null,
     ),
     savingsBanner,
-    ...groups.map(g => el("div", { style: "margin-bottom:18px;" },
-      el("div", {
-        style: "display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);font-weight:600;",
-      },
-        el("span", {}, `${g.cat} · ${g.count}`),
-        el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(g.total)}/חודש`),
-      ),
-      ...g.items.map(it => renderVendorRow(it, { cancelled, onToggle })),
-    )),
+    ...groups.map(g => {
+      // Build semantic sub-groups within this top-level category. If
+      // everything in this group falls into the same sub-bucket (or only
+      // into "other"), we skip the sub-headers and render a flat list —
+      // sub-headers add noise when there's nothing to compare against.
+      const subMap = new Map();
+      for (const it of g.items) {
+        const sc = subcategorize(it.label);
+        const entry = subMap.get(sc.id) || { id: sc.id, label: sc.label, items: [], total: 0 };
+        entry.items.push(it);
+        entry.total += it.monthly;
+        subMap.set(sc.id, entry);
+      }
+      const subGroups = Array.from(subMap.values()).sort((a, b) => b.total - a.total);
+      const showSubHeaders =
+        subGroups.length > 1 &&
+        // Need at least one non-"other" sub-group; a single "other"
+        // labelled bucket isn't useful as a heading.
+        subGroups.some(sg => sg.id !== "other");
+
+      return el("div", { style: "margin-bottom:18px;" },
+        el("div", {
+          style: "display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);font-weight:600;",
+        },
+          el("span", {}, `${g.cat} · ${g.count}`),
+          el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(g.total)}/חודש`),
+        ),
+        ...(showSubHeaders
+          ? subGroups.flatMap(sg => [
+              el("div", { class: "vendor-subgroup-header" },
+                el("span", {}, `${sg.label} · ${sg.items.length}`),
+                el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(sg.total)}/חודש`),
+              ),
+              ...sg.items.map(it => renderVendorRow(it, { cancelled, onToggle })),
+            ])
+          : g.items.map(it => renderVendorRow(it, { cancelled, onToggle }))),
+      );
+    }),
   );
 }
 

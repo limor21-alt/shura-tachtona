@@ -625,6 +625,23 @@ h3.subsection-title {
   border-radius: 4px;
 }
 
+/* Sub-group header inside a recurring-vendor category (renderer-side
+ * semantic grouping: AI/Media/Telecom/etc.). Visually lighter than the
+ * top-level category bar, sits flush above its vendor rows. */
+.vendor-subgroup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.vendor-subgroup-header + .vendor-row,
+.vendor-subgroup-header + .vendor-row-static {
+  margin-top: 0;
+}
+
 /* Per-vendor recurring row — collapsible to reveal monthly history. */
 .vendor-row {
   border-bottom: 1px dashed var(--border);

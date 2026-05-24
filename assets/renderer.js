@@ -228,9 +228,13 @@ function collectRecurringItems(model) {
   return items.filter(i => i.months_present >= 2 && i.monthly > 0);
 }
 
-function renderRecurringBreakdown(model) {
+function renderRecurringBreakdown(model, handlers) {
   const recurring = collectRecurringItems(model);
   if (recurring.length === 0) return null;
+
+  const cancelled = handlers?.cancelled instanceof Set ? handlers.cancelled : new Set();
+  const onToggle = typeof handlers?.onToggleCancel === "function" ? handlers.onToggleCancel : null;
+  const onClear = typeof handlers?.onClearCancelled === "function" ? handlers.onClearCancelled : null;
 
   // Group by category, sort categories by total descending.
   const byCat = new Map();
@@ -250,11 +254,41 @@ function renderRecurringBreakdown(model) {
 
   const grandTotal = groups.reduce((s, g) => s + g.total, 0);
   const grandCount = groups.reduce((s, g) => s + g.count, 0);
+  const cancelledItems = recurring.filter(it => cancelled.has(it.label));
+  const cancelledTotal = cancelledItems.reduce((s, it) => s + it.monthly, 0);
+
+  const savingsBanner = cancelledItems.length > 0
+    ? el("div", {
+        style: "margin:14px 0 18px;padding:14px 18px;background:var(--surplus-soft);border:1px solid #6ee7b7;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;",
+      },
+        el("div", {},
+          el("strong", { style: "color:var(--surplus);font-size:16px;" },
+            `אם תבטלו את אלה: ${formatILS(cancelledTotal)} בחודש`,
+          ),
+          el("div", { style: "font-size:13px;color:var(--text-secondary);margin-top:2px;" },
+            `${cancelledItems.length} פריטים מסומנים לביטול · ${formatILS(cancelledTotal * 12)} בשנה`,
+          ),
+        ),
+        onClear
+          ? el("button", {
+              class: "btn btn-ghost",
+              style: "font-size:13px;padding:6px 12px;",
+              onclick: onClear,
+            }, "נקה הכל")
+          : null,
+      )
+    : null;
 
   return el("section", { class: "report-section card" },
     el("h2", { class: "section-title" }, "הוצאות חוזרות לפי ספק"),
     el("p", { class: "text-secondary mb-16", style: "margin-top:0;font-size:14px;" },
-      `${grandCount} ספקים שחוזרים לפחות בחודשיים — ${formatILS(grandTotal)} סך הכל בחודש.`),
+      `${grandCount} ספקים שחוזרים לפחות בחודשיים — ${formatILS(grandTotal)} סך הכל בחודש.`,
+      onToggle
+        ? el("span", { class: "text-tertiary", style: "display:block;margin-top:4px;font-size:13px;" },
+            "סמנו את מה שהייתם רוצים לבטל כדי לראות כמה תחסכו.")
+        : null,
+    ),
+    savingsBanner,
     ...groups.map(g => el("div", { style: "margin-bottom:18px;" },
       el("div", {
         style: "display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);font-weight:600;",
@@ -262,19 +296,32 @@ function renderRecurringBreakdown(model) {
         el("span", {}, `${g.cat} · ${g.count}`),
         el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(g.total)}/חודש`),
       ),
-      ...g.items.map(it => el("div", {
-        style: "display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px;",
-      },
-        el("span", { class: "nb-label" }, it.label),
-        el("span", {
-          class: "text-tertiary",
-          style: "font-size:12px;",
-        }, `${it.months_present} חודשים`),
-        el("span", {
-          class: "area-amount",
-          style: "font-variant-numeric:tabular-nums;",
-        }, formatILS(it.monthly)),
-      )),
+      ...g.items.map(it => {
+        const isCancelled = cancelled.has(it.label);
+        const rowStyle = "display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px;" +
+          (isCancelled ? "opacity:0.55;text-decoration:line-through;" : "");
+        return el("label", {
+          style: rowStyle + "cursor:" + (onToggle ? "pointer" : "default") + ";",
+        },
+          onToggle
+            ? el("input", {
+                type: "checkbox",
+                checked: isCancelled ? "checked" : null,
+                onchange: () => onToggle(it.label),
+                style: "width:18px;height:18px;cursor:pointer;accent-color:var(--surplus);",
+              })
+            : el("span", {}, ""),
+          el("span", { class: "nb-label" }, it.label),
+          el("span", {
+            class: "text-tertiary",
+            style: "font-size:12px;",
+          }, `${it.months_present} חודשים`),
+          el("span", {
+            class: "area-amount",
+            style: "font-variant-numeric:tabular-nums;",
+          }, formatILS(it.monthly)),
+        );
+      }),
     )),
   );
 }
@@ -388,7 +435,7 @@ function buildSectionRenderers(handlers) {
     // includes it explicitly.
     details_by_area:       (m) => {
       const wrap = document.createDocumentFragment();
-      const recurring = renderRecurringBreakdown(m);
+      const recurring = renderRecurringBreakdown(m, handlers);
       if (recurring) wrap.appendChild(recurring);
       const areas = renderFindingsByArea(m);
       if (areas) wrap.appendChild(areas);

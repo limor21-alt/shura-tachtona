@@ -26,6 +26,10 @@ const state = {
     has_partner_or_business_transfers: "unknown",
     planned_files: ["both"]
   },
+  // Recurring items the user has tentatively marked to cancel.
+  // Keyed by vendor label. Resets on each new session. Purely client-side;
+  // never sent to the backend.
+  cancelled: new Set(),
   files: [],
   files_parsed: null,
   questions: [],
@@ -481,7 +485,17 @@ function renderReportScreen() {
   return renderReport(state.report_model, {
     onExportJson: () => downloadJson(state.report_model, "shura-tachtona-report.json"),
     onExportPdf:  () => printReport(),
-    onExportCsv:  () => downloadCsv(state.report_model)
+    onExportCsv:  () => downloadCsv(state.report_model),
+    cancelled: state.cancelled,
+    onToggleCancel: (key) => {
+      if (state.cancelled.has(key)) state.cancelled.delete(key);
+      else state.cancelled.add(key);
+      render();
+    },
+    onClearCancelled: () => {
+      state.cancelled.clear();
+      render();
+    }
   });
 }
 

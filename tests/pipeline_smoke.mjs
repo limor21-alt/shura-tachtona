@@ -147,7 +147,17 @@ function assert(name, cond, detail = "") {
   assert("summary_status = surplus", m.summary_status === "surplus");
   assert("gap_label = עודף מחושב", m.summary.gap_label === "עודף מחושב");
   assert("display_mode = single_scenario", m.display_mode === "single_scenario");
-  assert("headline mentions surplus", m.summary.headline_copy.includes("מכסה") || m.summary.headline_copy.includes("עודף"));
+  // After Phase 2b the headline comes from the selected playbook's
+  // ui.bottomLineHeadline. The loan (1750/mo on 18420 income = 9.5%) crosses
+  // the 8% debt_pressure threshold and that playbook (priority 420) beats
+  // surplus_not_felt (200), so the headline now talks about the debt
+  // commitment instead of the surplus. summary_status is still "surplus"
+  // (the underlying numbers haven't changed), and the gap_label is still
+  // "עודף מחושב" — only the prose framing shifted.
+  assert("headline is non-empty Hebrew",
+    typeof m.summary.headline_copy === "string" && m.summary.headline_copy.length > 0);
+  assert("headline avoids panic vocabulary",
+    !/\b(חמור|מסוכן|דורש טיפול מיידי|בזבוזים|חייבים|קחו הלוואה)\b/.test(m.summary.headline_copy));
 }
 
 // =============================================================

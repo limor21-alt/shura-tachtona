@@ -273,6 +273,11 @@ await group("#11 Surplus → 'עודף מחושב'", async () => {
   assert("#11.b gap_label = 'עודף מחושב'", m.summary.gap_label === "עודף מחושב");
   const all = JSON.stringify(m);
   assert("#11.c no 'פער' anywhere",         !/\bפער\b/.test(all));
+  // Playbook: this scenario only uploads a bank file (no CC), so the
+  // data_quality short-circuit picks partial_bank_only regardless of the
+  // surplus signal. The surplus is real but the report is partial.
+  assert("#11.d selected_playbooks populated",  !!m.selected_playbooks);
+  assert("#11.e primary = partial_bank_only",   m.selected_playbooks?.primary === "partial_bank_only");
 });
 
 // ====================================================================
@@ -300,6 +305,13 @@ await group("#12 Deficit → 'חוסר חודשי', calm", async () => {
   // Spec-forbidden panic vocabulary (see §"LANGUAGE RULES")
   const panic = /חמור|מסוכן|מוכרחים|דורש טיפול מיידי|בזבוזים|חייבים|קחו הלוואה/;
   assert("#12.c no panic language",         !panic.test(all));
+  // Playbook: income 5000 with expenses ~7250 → expenses > 1.25× income,
+  // which fires the adapter's missingIncomeLikely heuristic. missing_income
+  // (priority 480) wins over debt_pressure (420), large_deficit (300) and
+  // small_deficit (250) — and that's the right product call: the gap
+  // looks more like an incomplete picture than spending discipline.
+  assert("#12.d selected_playbooks populated",  !!m.selected_playbooks);
+  assert("#12.e primary = missing_income",      m.selected_playbooks?.primary === "missing_income");
 });
 
 // ====================================================================
@@ -320,6 +332,13 @@ await group("#13 Variable income material → two_scenarios", async () => {
   assert("#13.a summary_status = variable_dependent", m.summary_status === "variable_dependent");
   assert("#13.b display_mode = two_scenarios",        m.display_mode === "two_scenarios");
   assert("#13.c has 2 scenarios",                     m.summary.scenarios?.length === 2);
+  // Playbook: this scenario uploads only a bank file (no CC), so even with
+  // material variable income the data_quality short-circuit picks
+  // partial_bank_only. variable_income_dependent only fires on a full report
+  // (covered by pipeline_playbook_smoke separately if/when a richer fixture
+  // exists).
+  assert("#13.d primary = partial_bank_only",
+    m.selected_playbooks?.primary === "partial_bank_only");
 });
 
 // ====================================================================
@@ -382,6 +401,13 @@ await group("#16 Only credit card → partial_credit_only", async () => {
   const m = await runFinal(rows, baseCtx({ partner_name: undefined }));
   assert("#16.a report_type = partial_credit_only", m.report_type === "partial_credit_only");
   assert("#16.b no fixed income (no bank file)",    m.income_model.fixed.length === 0);
+  // Playbook: data_quality short-circuit — partial_credit_only is primary
+  // regardless of any numeric signals.
+  assert("#16.c primary = partial_credit_only",
+    m.selected_playbooks?.primary === "partial_credit_only");
+  // partial reports omit scenario_comparison from section order.
+  assert("#16.d ui_structure omits scenario_comparison",
+    !m.ui_structure?.section_order.includes("scenario_comparison"));
 });
 
 // ====================================================================
@@ -396,6 +422,9 @@ await group("#17 Only bank → partial_bank_only", async () => {
   ];
   const m = await runFinal(rows, baseCtx({ partner_name: undefined }));
   assert("#17.a report_type = partial_bank_only", m.report_type === "partial_bank_only");
+  // Playbook: data_quality short-circuit → partial_bank_only primary.
+  assert("#17.b primary = partial_bank_only",
+    m.selected_playbooks?.primary === "partial_bank_only");
 });
 
 // ====================================================================

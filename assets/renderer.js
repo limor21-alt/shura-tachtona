@@ -264,24 +264,63 @@ function renderExport(model, handlers) {
 }
 
 // --- main entry ---
+// Map playbook ReportSectionId → renderer. Used when the model arrives
+// with a deterministic ui_structure.section_order from the backend.
+// scenario_comparison is folded into renderSummary (display_mode handles it),
+// so we render summary once even if both bottom_line and scenario_comparison
+// appear in the order.
+function buildSectionRenderers(handlers) {
+  return {
+    work_done:             (m) => renderWorkDone(m),
+    bottom_line:           (m) => renderSummary(m),
+    meaning:               (m) => renderMeaning(m),
+    scenario_comparison:   () => null, // already inside renderSummary
+    check_first:           (m) => renderPriorityChecks(m),
+    control_opportunities: (m) => renderImprovements(m),
+    details_by_area:       (m) => renderFindingsByArea(m),
+    classify_later:        (m) => renderNonBlocking(m),
+    audit_trail:           (m) => renderAuditTrail(m),
+    export:                (m) => renderExport(m, handlers),
+  };
+}
+
+const DEFAULT_SECTION_ORDER = [
+  "work_done",
+  "bottom_line",
+  "meaning",
+  "check_first",
+  "control_opportunities",
+  "details_by_area",
+  "classify_later",
+  "audit_trail",
+  "export",
+];
+
 export function renderReport(model, handlers = {}) {
   const root = el("div", { class: "screen-wide" });
 
+  // Header is structural (eyebrow + confidence) and not part of the
+  // playbook section order — always first.
   root.appendChild(renderReportHeader(model));
-  root.appendChild(renderWorkDone(model));
-  root.appendChild(renderSummary(model));
 
-  const meaning = renderMeaning(model);          if (meaning) root.appendChild(meaning);
-  const pri     = renderPriorityChecks(model);   if (pri)     root.appendChild(pri);
-  const imp     = renderImprovements(model);     if (imp)     root.appendChild(imp);
-  const areas   = renderFindingsByArea(model);   if (areas)   root.appendChild(areas);
-  const nb      = renderNonBlocking(model);      if (nb)      root.appendChild(nb);
+  const renderers = buildSectionRenderers(handlers);
+  // Prefer the deterministic order from the backend's playbook
+  // selection. Fall back to the hard-coded order if the backend hasn't
+  // attached ui_structure (older snapshots / pre-Phase 2 servers).
+  const order = Array.isArray(model.ui_structure?.section_order) &&
+                model.ui_structure.section_order.length > 0
+    ? model.ui_structure.section_order
+    : DEFAULT_SECTION_ORDER;
 
-  // Audit trail goes near the end, always collapsed.
-  const audit = renderAuditTrail(model);
-  if (audit) root.appendChild(audit);
-
-  root.appendChild(renderExport(model, handlers));
+  const seen = new Set();
+  for (const sectionId of order) {
+    if (seen.has(sectionId)) continue;
+    seen.add(sectionId);
+    const fn = renderers[sectionId];
+    if (!fn) continue;
+    const node = fn(model);
+    if (node) root.appendChild(node);
+  }
 
   return root;
 }

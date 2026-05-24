@@ -10,6 +10,73 @@
 import type { ClaudeCopy, ReportModel } from "./schema.ts";
 import { validateClaudeCopy } from "./validators/forbidden_words.ts";
 import { CLAUDE_MODEL, SYSTEM_PROMPT, buildUserMessage } from "./prompt.ts";
+import { PLAYBOOKS, type Playbook, type PlaybookId } from "./playbooks.ts";
+
+/** Resolve the primary playbook for a model, if Phase 2 selection ran. */
+function getPlaybookFor(model: ReportModel): Playbook | null {
+  const id = model.selected_playbooks?.primary as PlaybookId | undefined;
+  if (!id) return null;
+  return PLAYBOOKS[id] ?? null;
+}
+
+/** Collect every Hebrew string Claude wrote, lowercased, for substring checks. */
+function flattenCopy(copy: ClaudeCopy): string {
+  return [
+    copy.headline_copy,
+    copy.meaning_copy,
+    ...copy.work_done_bullets,
+    ...copy.priority_check_blurbs.map((b) => b.copy_blurb),
+    ...copy.improvement_blurbs.map((b) => b.copy_blurb),
+  ].join(" ").toLowerCase();
+}
+
+/** Phase 2b: validate Claude's output against the playbook's forbiddenClaims
+ *  and doNotSay list. Returns a list of violation messages; empty = clean.
+ *  This runs in addition to the GLOBAL_LANGUAGE_RULES enforced by
+ *  validators/forbidden_words.ts. */
+export function validateAgainstPlaybook(
+  copy: ClaudeCopy,
+  pb: Playbook | null,
+): string[] {
+  if (!pb) return [];
+  const violations: string[] = [];
+  const text = flattenCopy(copy);
+  for (const phrase of pb.forbiddenClaims) {
+    if (!phrase) continue;
+    if (text.includes(phrase.toLowerCase())) {
+      violations.push(`playbook[${pb.id}] forbids: "${phrase}"`);
+    }
+  }
+  for (const phrase of pb.claudeCopyHints.doNotSay) {
+    if (!phrase) continue;
+    if (text.includes(phrase.toLowerCase())) {
+      violations.push(`playbook[${pb.id}] doNotSay: "${phrase}"`);
+    }
+  }
+  return violations;
+}
+
+/** Build a short Hebrew context block describing the selected playbook,
+ *  to prepend before the JSON ReportModel in the Claude prompt. */
+function buildPlaybookGuidance(pb: Playbook): string {
+  const doSay = pb.claudeCopyHints.doSay.map((s) => `  • ${s}`).join("\n");
+  const doNot = pb.claudeCopyHints.doNotSay.map((s) => `  • ${s}`).join("\n");
+  const forbid = pb.forbiddenClaims.map((s) => `  • ${s}`).join("\n");
+  return `## הקשר תרחיש (playbook: ${pb.id})
+תווית: ${pb.label}
+טון רצוי: ${pb.claudeCopyHints.tone}
+
+הצעות לניסוח כותרת ומשמעות (אפשר לאמץ או להתאים, אסור לסתור):
+  • כותרת: "${pb.ui.bottomLineHeadline}"
+  • משמעות: "${pb.ui.meaningBody}"
+
+מותר/כדאי לומר:
+${doSay}
+
+אסור לומר (משפטים אלה יביאו לדחיית הפלט):
+${doNot}
+${forbid}`;
+}
 
 // deno-lint-ignore no-explicit-any
 declare const Deno: any;
@@ -26,6 +93,11 @@ function formatILS(n: number): string {
 // ====================================================================
 
 function fallbackHeadline(model: ReportModel): string {
+  // Phase 2b: prefer the playbook's bottomLineHeadline when available.
+  // It's hand-written per scenario and already calm/non-judgmental.
+  const pb = getPlaybookFor(model);
+  if (pb?.ui?.bottomLineHeadline) return pb.ui.bottomLineHeadline;
+
   const { summary_status, summary } = model;
   if (summary_status === "insufficient_data") {
     return "בקבצים שהעלאתם אין מספיק נתונים כדי לחשב שורה תחתונה מלאה.";
@@ -43,6 +115,10 @@ function fallbackHeadline(model: ReportModel): string {
 }
 
 function fallbackMeaning(model: ReportModel): string {
+  // Phase 2b: prefer the playbook's meaningBody when available.
+  const pb = getPlaybookFor(model);
+  if (pb?.ui?.meaningBody) return pb.ui.meaningBody;
+
   if (model.summary_status === "insufficient_data") {
     return "כדי לקבל תמונה מלאה, צריך להעלות לפחות עו״ש וכרטיסי אשראי לחודש אחד שלם.";
   }
@@ -109,6 +185,14 @@ async function callClaude(model: ReportModel, apiKey: string): Promise<ClaudeCop
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    // Phase 2b: prepend playbook guidance to the user message so Claude
+    // knows the scenario's tone + allowed/forbidden phrasings. The
+    // ReportModel JSON itself already contains selected_playbooks, but
+    // Hebrew prose hints are easier for the model to follow.
+    const pb = getPlaybookFor(model);
+    const guidance = pb ? buildPlaybookGuidance(pb) + "\n\n" : "";
+    const userMessage = guidance + buildUserMessage(model);
+
     const res = await fetch(ANTHROPIC_ENDPOINT, {
       method: "POST",
       signal: controller.signal,
@@ -121,7 +205,7 @@ async function callClaude(model: ReportModel, apiKey: string): Promise<ClaudeCop
         model: CLAUDE_MODEL,
         max_tokens: 1500,
         system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserMessage(model) }]
+        messages: [{ role: "user", content: userMessage }]
       })
     });
 
@@ -176,12 +260,21 @@ export async function writeCopy(model: ReportModel): Promise<ClaudeCopy> {
   const fromClaude = await callClaude(model, apiKey);
   if (!fromClaude) return fallback;
 
-  // Validate Claude's output. If any field violates forbidden words /
-  // "/חודש"-on-one-time / "פער" / "כעגע" — drop the whole thing and
-  // use the fallback. Partial fields could be salvaged but the cleaner
-  // contract is all-or-nothing per request.
+  // Validate Claude's output. If any field violates global forbidden
+  // words / "/חודש"-on-one-time / "פער" / "כעגע" — drop the whole thing
+  // and use the fallback. Partial fields could be salvaged but the
+  // cleaner contract is all-or-nothing per request.
   const violations = validateClaudeCopy(fromClaude);
   if (violations.length > 0) {
+    return fallback;
+  }
+
+  // Phase 2b: also reject if Claude wrote any phrase the selected
+  // playbook explicitly forbids (e.g. "פוטנציאל חיסכון" without
+  // evidence in subscriptions_creep, or "מסוכן" in debt_pressure).
+  const pb = getPlaybookFor(model);
+  const playbookViolations = validateAgainstPlaybook(fromClaude, pb);
+  if (playbookViolations.length > 0) {
     return fallback;
   }
 

@@ -29,6 +29,14 @@ export const IDEAL_BLOCKING_QUESTIONS = 3;
 const ONE_TIME_INCOME_BLOCKING_MIN     = 5000;   // ₪5k+ one-time → ask
 const POSSIBLE_INTERNAL_XFER_MIN       = 3000;   // ₪3k+ unidentified outflow → ask
 const PARTNER_INCOME_MIN_TO_MATTER     = 1000;   // ignore tiny partner transfers
+const AMBIGUOUS_VENDOR_MONTHLY_MIN     = 400;    // ≥₪400/mo recurring → worth asking
+const AMBIGUOUS_VENDOR_MAX_QUESTIONS   = 2;      // cap to avoid quiz feeling
+
+// Vendors whose name says "I'm a municipal/regional/multi-purpose entity"
+// without telling us WHAT the charge is for (could be ארנונה / מים /
+// חוגים / חינוך / אגרות). The user can resolve this in one tap.
+const AMBIGUOUS_VENDOR_PATTERN =
+  /חברה לפיתוח|מינהל|מועצה|רשות מקומית|עיריית|תאגיד מים|החברה למשק/i;
 
 // ====================================================================
 // HELPERS
@@ -234,6 +242,70 @@ function checkMissingCriticalFile(
 }
 
 // ====================================================================
+// Q5 — Ambiguous municipal/multi-purpose vendor
+// ====================================================================
+//
+// Catches material recurring charges to entities whose name doesn't
+// say what the charge is for. Asking the user resolves the category
+// in one tap and stops the report from mislabelling them.
+
+function checkAmbiguousVendor(
+  facts: Facts,
+  classification: Classification,
+): { question: ClarificationQuestion; targets: string[] } | null {
+  const refMap = rowsByRef(facts);
+  const months = Math.max(1, facts.months_covered.length);
+
+  // Group ambiguous-name rows by normalized vendor key.
+  const groups = new Map<string, { sample: NormalizedRow; refs: string[]; total: number; months: Set<string> }>();
+  for (const d of classification.decisions) {
+    const row = refMap.get(d.row_ref);
+    if (!row || row.amount >= 0) continue;
+    if (!AMBIGUOUS_VENDOR_PATTERN.test(row.raw_description)) continue;
+    // Skip rows we've already decided are not real expenses.
+    if (
+      d.decision === "cc_charge_in_bank" ||
+      d.decision === "internal_transfer_excluded" ||
+      d.decision === "one_time_income_excluded"
+    ) continue;
+
+    const key = row.raw_description.replace(/\s+/g, " ").trim().toLowerCase();
+    const prev = groups.get(key) ?? { sample: row, refs: [], total: 0, months: new Set<string>() };
+    prev.refs.push(d.row_ref);
+    prev.total += Math.abs(row.amount);
+    prev.months.add(row.date.slice(0, 7));
+    groups.set(key, prev);
+  }
+
+  // Pick the largest group whose monthly average crosses the threshold.
+  const candidates = Array.from(groups.values())
+    .map(g => ({ ...g, monthly: g.total / months }))
+    .filter(g => g.monthly >= AMBIGUOUS_VENDOR_MONTHLY_MIN)
+    .sort((a, b) => b.monthly - a.monthly);
+
+  if (candidates.length === 0) return null;
+  const top = candidates[0];
+  const label = top.sample.cleaned_name || top.sample.raw_description;
+
+  const question: ClarificationQuestion = {
+    id: "q-ambiguous-vendor",
+    meta: "תשלום לבדיקה",
+    title: `מה זה התשלום החוזר ל"${label}"?`,
+    context: `מצאנו תשלום חוזר של ${formatILS(top.monthly)}/חודש (${top.months.size} חודשים). אנחנו לא יודעים אם זה ארנונה, מים, חינוך או משהו אחר — הסיווג ישפיע על איך זה מוצג בדוח.`,
+    options: [
+      { value: "municipal", label: "ארנונה / מים / מועצה" },
+      { value: "education", label: "חינוך / חוגים / צהרון" },
+      { value: "other_fixed", label: "התחייבות אחרת" },
+      { value: "one_time", label: "חד־פעמי, לא חוזר" },
+    ],
+    allow_dontknow: true,
+    reason: "ambiguous_municipal_vendor",
+  };
+
+  return { question, targets: top.refs };
+}
+
+// ====================================================================
 // ORCHESTRATOR
 // ====================================================================
 
@@ -241,6 +313,7 @@ const QUESTION_CHECKS = [
   checkPartnerIncome,
   checkLargeOneTimeIncome,
   checkPossibleInternalTransfer,
+  checkAmbiguousVendor,
   // checkMissingCriticalFile is reserved but currently returns null
 ];
 

@@ -9,7 +9,8 @@ const SUITES = [
   "tests/playbooks_smoke.mjs",
   "tests/pipeline_playbook_smoke.mjs",
   "tests/copy_writer_playbook_smoke.mjs",
-  "tests/recurring_rules_smoke.mjs"
+  "tests/recurring_rules_smoke.mjs",
+  "tests/ambiguous_vendor_smoke.mjs"
 ];
 
 let totalPass = 0, totalFail = 0;

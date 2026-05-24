@@ -20,6 +20,14 @@
 //     "internal" → review_only → internal_transfer_excluded
 //     "expense"  → no change (stays review_only)
 //     "unknown"  → no change
+//
+//   q-ambiguous-vendor:
+//     "municipal"   → fixed_commitment (force; row may have been
+//                     review_only or already fixed)
+//     "education"   → fixed_commitment
+//     "other_fixed" → fixed_commitment
+//     "one_time"    → one_time_expense
+//     "unknown"     → no change
 
 import type {
   Answer,
@@ -55,6 +63,15 @@ function decisionAfterAnswer(
   if (questionId === "q-internal-transfer") {
     if (choice === "internal") return "internal_transfer_excluded";
     if (choice === "expense")  return null;
+  }
+
+  if (questionId === "q-ambiguous-vendor") {
+    if (choice === "municipal" || choice === "education" || choice === "other_fixed") {
+      return before === "fixed_commitment" ? null : "fixed_commitment";
+    }
+    if (choice === "one_time") {
+      return before === "one_time_expense" ? null : "one_time_expense";
+    }
   }
 
   return null;

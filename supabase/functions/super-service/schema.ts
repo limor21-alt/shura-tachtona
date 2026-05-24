@@ -149,7 +149,8 @@ export type BlockingReason =
   | "large_recurring_check"
   | "possible_internal_transfer"
   | "recurring_housing_or_debt"
-  | "missing_critical_file";
+  | "missing_critical_file"
+  | "ambiguous_municipal_vendor";
 
 export interface GateDecision {
   /** 0–5 questions. Ideal 1–3. */

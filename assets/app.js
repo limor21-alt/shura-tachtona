@@ -393,12 +393,15 @@ async function startProcessing() {
     await sleep(300);
   } catch (e) {
     // Fallback path for local dev / unreachable backend — render
-    // the mock so the UX is still demoable.
+    // the mock so the UX is still demoable. If the user has already
+    // answered clarification questions, advance straight to the report
+    // instead of looping back to the same questions.
     console.warn("backend unreachable, falling back to mock", e);
+    const hasAnswers = state.answers && Object.keys(state.answers).length > 0;
     state.processing_step = 4; render();
     await sleep(400);
-    state.questions = MOCK_CLARIFICATION_QUESTIONS;
     state.report_model = MOCK_REPORT_MODEL;
+    state.questions = hasAnswers ? [] : MOCK_CLARIFICATION_QUESTIONS;
     state.processing_step = 5; render();
     await sleep(300);
     state.processing_step = 6; render();

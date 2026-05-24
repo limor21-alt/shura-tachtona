@@ -5,6 +5,7 @@ import { COPY } from "./copy/he.js";
 import { parseFiles, detectFileType } from "./parser.js";
 import { renderReport } from "./renderer.js";
 import { MOCK_REPORT_MODEL, MOCK_CLARIFICATION_QUESTIONS } from "./data/mock_report.js";
+import { runPipeline } from "./pipeline.bundle.js";
 
 // "landing" lives in static HTML for AEO/SEO. The JS state machine
 // owns the in-app screens only.
@@ -334,24 +335,14 @@ function buildContextForBackend() {
 }
 
 async function postAnalyze(body) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const res = await fetch(SUPER_SERVICE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      throw new Error(`backend ${res.status}: ${t}`);
-    }
-    return await res.json();
-  } finally {
-    clearTimeout(timeout);
-  }
+  // The pipeline now runs IN THE BROWSER via the bundled
+  // pipeline.bundle.js (built from supabase/functions/super-service).
+  // No backend dependency — everything is deterministic and runs on
+  // the user's parsed rows directly. SUPER_SERVICE_URL is kept above
+  // for reference only and as a future remote-deployment hook.
+  return await runPipeline(body);
 }
+void SUPER_SERVICE_URL; // referenced for future remote-deployment use
 
 async function startProcessing() {
   state.processing_step = 0;

@@ -397,7 +397,15 @@ async function startProcessing() {
     const hasAnswers = state.answers && Object.keys(state.answers).length > 0;
     state.processing_step = 4; render();
     await sleep(400);
-    state.report_model = MOCK_REPORT_MODEL;
+    // Clone so we don't mutate the shared singleton and so frontend
+    // parser warnings can be merged onto this specific render.
+    state.report_model = {
+      ...MOCK_REPORT_MODEL,
+      parser_warnings: [
+        ...(MOCK_REPORT_MODEL.parser_warnings || []),
+        ...(parsed?.warnings || []),
+      ],
+    };
     state.questions = hasAnswers ? [] : MOCK_CLARIFICATION_QUESTIONS;
     state.processing_step = 5; render();
     await sleep(300);
@@ -417,6 +425,14 @@ async function startProcessing() {
     go("clarification");
   } else if (response.kind === "report") {
     state.report_model = response.report_model;
+    // Merge any frontend parser warnings (the backend never sees them) so
+    // they show up on the report's warnings banner. Helps users notice when
+    // some rows of their file failed to parse.
+    if (parsed?.warnings?.length) {
+      const existing = Array.isArray(state.report_model.parser_warnings)
+        ? state.report_model.parser_warnings : [];
+      state.report_model.parser_warnings = [...existing, ...parsed.warnings];
+    }
     go("report");
   } else {
     state.fatal_error = "תגובה לא צפויה מהשרת";

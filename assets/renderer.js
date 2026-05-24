@@ -40,7 +40,45 @@ function renderReportHeader(model) {
     low_confidence:      "eyebrow_low_confidence"
   }[model.report_type] || "eyebrow_full";
 
+  // Big visible banner when we're rendering the demo/mock report
+  // (frontend fallback when the backend is unreachable). Prevents the
+  // user from mistaking realistic-looking Hebrew vendor names in the
+  // mock ("אמדוקס", "ינון", "משכנתא") for things actually parsed from
+  // their file.
+  const mockBanner = model.is_mock
+    ? el("div", {
+        style:
+          "background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;" +
+          "padding:14px 18px;margin-bottom:18px;color:#854d0e;font-weight:600;",
+      },
+        el("div", { style: "font-size:15px;margin-bottom:4px;" },
+          "⚠ זה דוח דמו, לא הקבצים שלך"),
+        el("div", { style: "font-size:13px;font-weight:500;color:#92400e;" },
+          "השרת לא הגיב לקבצים ששלחת, אז אנחנו מראים דוגמה כדי שתראי איך הדוח נראה. " +
+          "השמות, הסכומים והקטגוריות בדוח הזה הם המצאה."),
+      )
+    : null;
+
+  // Parser warnings — if the parser had trouble with some rows, surface
+  // it so the user knows the report might be partial.
+  const warnings = Array.isArray(model.parser_warnings) ? model.parser_warnings : [];
+  const warningsBanner = warnings.length > 0
+    ? el("div", {
+        style:
+          "background:#fef3c7;border:1px solid #fde68a;border-radius:10px;" +
+          "padding:12px 16px;margin-bottom:18px;color:#854d0e;font-size:13px;",
+      },
+        el("strong", { style: "display:block;margin-bottom:4px;" },
+          `${warnings.length} אזהרות מפענוח הקבצים:`),
+        el("ul", { style: "margin:0;padding-inline-start:18px;" },
+          ...warnings.slice(0, 5).map(w => el("li", {}, w)),
+        ),
+      )
+    : null;
+
   return el("div", { class: "report-header" },
+    mockBanner,
+    warningsBanner,
     el("div", { class: "report-eyebrow" },
       el("span", { class: `confidence-badge ${model.data_confidence}` },
         COPY.report.confidence[model.data_confidence] || ""),

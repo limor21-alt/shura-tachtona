@@ -6,6 +6,10 @@
 // Phases 2–5: the backend must produce a JSON object that matches this shape.
 
 export const MOCK_REPORT_MODEL = {
+  // FRONTEND-ONLY flag. Set so the renderer can show an obvious banner
+  // when this object is rendered instead of a real backend response.
+  // Real ReportModels from the backend never set this.
+  is_mock: true,
   report_type: "full",
   data_confidence: "high",
   data_confidence_reason: "עו״ש + אשראי + 3 חודשים",

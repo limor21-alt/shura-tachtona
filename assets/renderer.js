@@ -227,6 +227,7 @@ function collectRecurringItems(model) {
       occurrences: f.occurrences ?? 0,
       category: f.category || "התחייבויות קבועות",
       kind: "fixed",
+      evidence: f.evidence || [],
     });
   }
   for (const d of em.debt_payments || []) {
@@ -237,6 +238,7 @@ function collectRecurringItems(model) {
       occurrences: d.occurrences ?? 0,
       category: "חוב והלוואות",
       kind: "debt",
+      evidence: d.evidence || [],
     });
   }
   for (const f of em.flexible_spending || []) {
@@ -247,6 +249,7 @@ function collectRecurringItems(model) {
       occurrences: f.occurrences ?? 0,
       category: f.category || "הוצאות גמישות",
       kind: "flexible",
+      evidence: f.evidence || [],
     });
   }
   for (const r of em.review_only_items || []) {
@@ -261,9 +264,73 @@ function collectRecurringItems(model) {
           ? "העברות אפליקציה"
           : "לבדיקה",
       kind: "review",
+      evidence: r.evidence || [],
     });
   }
   return items.filter(i => i.months_present >= 2 && i.monthly > 0);
+}
+
+// ---- per-vendor monthly history + anomaly detection ---------------
+// The pipeline puts each transaction that contributed to a vendor's
+// monthly total into `evidence: [{date, amount}]`. We use that here to
+// build the collapsible per-month breakdown and flag obvious oddities:
+//   - "spike": one month's total is ≥ 2× the median and ≥ 50 ₪ above it
+//   - "duplicate": ≥ 2 charges within the same calendar month
+//   - "gap": a skipped month between the first and last present months
+
+const HEBREW_MONTHS = ["", "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+                       "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+
+function formatMonthShort(yyyymm) {
+  const [y, m] = String(yyyymm || "").split("-");
+  const idx = parseInt(m, 10);
+  if (!idx || !HEBREW_MONTHS[idx]) return yyyymm || "";
+  return `${HEBREW_MONTHS[idx]} '${(y || "").slice(2)}`;
+}
+
+function groupEvidenceByMonth(evidence) {
+  const map = new Map();
+  for (const e of evidence || []) {
+    const month = String(e.date || "").slice(0, 7);
+    if (!month) continue;
+    const entry = map.get(month) || { total: 0, count: 0 };
+    entry.total += Math.abs(e.amount || 0);
+    entry.count += 1;
+    map.set(month, entry);
+  }
+  return map;
+}
+
+function detectVendorAnomalies(monthsMap) {
+  const months = Array.from(monthsMap.keys()).sort();
+  if (months.length === 0) return { spikes: new Set(), duplicates: new Set(), gaps: [] };
+
+  const totals = months.map(m => monthsMap.get(m).total);
+  const sorted = totals.slice().sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  const spikes = new Set();
+  for (const m of months) {
+    const t = monthsMap.get(m).total;
+    // Require both a 2× ratio AND a meaningful absolute delta so a jump
+    // from 5 ₪ to 12 ₪ doesn't get flagged as a "spike".
+    if (median > 0 && t >= 2 * median && t - median >= 50) spikes.add(m);
+  }
+
+  const duplicates = new Set();
+  for (const m of months) {
+    if (monthsMap.get(m).count >= 2) duplicates.add(m);
+  }
+
+  const gaps = [];
+  for (let i = 1; i < months.length; i++) {
+    const [py, pm] = months[i - 1].split("-").map(Number);
+    const [cy, cm] = months[i].split("-").map(Number);
+    const diff = (cy - py) * 12 + (cm - pm);
+    if (diff > 1) gaps.push({ after: months[i - 1], before: months[i], missing: diff - 1 });
+  }
+
+  return { spikes, duplicates, gaps };
 }
 
 function renderRecurringBreakdown(model, handlers) {
@@ -334,33 +401,95 @@ function renderRecurringBreakdown(model, handlers) {
         el("span", {}, `${g.cat} · ${g.count}`),
         el("span", { style: "font-variant-numeric:tabular-nums;" }, `${formatILS(g.total)}/חודש`),
       ),
-      ...g.items.map(it => {
-        const isCancelled = cancelled.has(it.label);
-        const rowStyle = "display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px;" +
-          (isCancelled ? "opacity:0.55;text-decoration:line-through;" : "");
-        return el("label", {
-          style: rowStyle + "cursor:" + (onToggle ? "pointer" : "default") + ";",
-        },
-          onToggle
-            ? el("input", {
-                type: "checkbox",
-                checked: isCancelled ? "checked" : null,
-                onchange: () => onToggle(it.label),
-                style: "width:18px;height:18px;cursor:pointer;accent-color:var(--surplus);",
-              })
-            : el("span", {}, ""),
-          el("span", { class: "nb-label" }, it.label),
-          el("span", {
-            class: "text-tertiary",
-            style: "font-size:12px;",
-          }, `${it.months_present} חודשים`),
-          el("span", {
-            class: "area-amount",
-            style: "font-variant-numeric:tabular-nums;",
-          }, formatILS(it.monthly)),
+      ...g.items.map(it => renderVendorRow(it, { cancelled, onToggle })),
+    )),
+  );
+}
+
+function renderVendorRow(it, { cancelled, onToggle }) {
+  const isCancelled = cancelled.has(it.label);
+  const monthsMap = groupEvidenceByMonth(it.evidence);
+  const anomalies = detectVendorAnomalies(monthsMap);
+  const hasHistory = monthsMap.size > 0;
+  const hasAnomaly = anomalies.spikes.size > 0 || anomalies.duplicates.size > 0 || anomalies.gaps.length > 0;
+  const orderedMonths = Array.from(monthsMap.keys()).sort();
+
+  const checkbox = onToggle
+    ? el("input", {
+        type: "checkbox",
+        checked: isCancelled ? "checked" : null,
+        onchange: (e) => { e.stopPropagation(); onToggle(it.label); },
+        // Stop click from bubbling to <summary>, which would toggle expansion.
+        onclick: (e) => e.stopPropagation(),
+      })
+    : null;
+
+  const summaryChildren = [
+    checkbox,
+    el("span", { class: "vendor-label" }, it.label),
+    hasAnomaly
+      ? el("span", { class: "vendor-anomaly-chip", title: "יש כאן משהו לבדוק — לחצו להרחבה" }, "⚠ לבדיקה")
+      : null,
+    el("span", { class: "vendor-months-count" }, `${it.months_present} חודשים`),
+    el("span", { class: "vendor-monthly" }, formatILS(it.monthly)),
+  ].filter(Boolean);
+
+  // If there's no per-transaction evidence we can't build a useful body —
+  // fall back to a non-expandable row so we don't show an empty disclosure.
+  if (!hasHistory) {
+    return el("div", {
+      class: "vendor-row vendor-row-static" + (isCancelled ? " is-cancelled" : ""),
+    }, ...summaryChildren);
+  }
+
+  const body = el("div", { class: "vendor-row-body" },
+    el("ul", { class: "vendor-month-list" },
+      ...orderedMonths.map(m => {
+        const info = monthsMap.get(m);
+        const isSpike = anomalies.spikes.has(m);
+        const isDup = anomalies.duplicates.has(m);
+        return el("li", { class: "vendor-month-row" },
+          el("span", { class: "vendor-month-name" }, formatMonthShort(m)),
+          el("span", { class: "vendor-month-amount" }, formatILS(info.total)),
+          isDup ? el("span", { class: "vendor-month-badge dup" }, `× ${info.count} חיובים`) : null,
+          isSpike ? el("span", { class: "vendor-month-badge spike" }, "↑ זינוק") : null,
         );
       }),
-    )),
+    ),
+    hasAnomaly
+      ? el("div", { class: "vendor-anomaly-notes" },
+          anomalies.duplicates.size > 0
+            ? el("div", { class: "vendor-anomaly-note" },
+                "🔍 ",
+                el("strong", {}, "כפל חיוב באותו חודש: "),
+                Array.from(anomalies.duplicates).sort().map(formatMonthShort).join(", "),
+                " — שווה לבדוק אם זה כפילות, מכשירים שונים, או שני מנויים נפרדים.")
+            : null,
+          anomalies.spikes.size > 0
+            ? el("div", { class: "vendor-anomaly-note" },
+                "📈 ",
+                el("strong", {}, "זינוק בחיוב: "),
+                Array.from(anomalies.spikes).sort().map(formatMonthShort).join(", "),
+                " — לפחות פי 2 מהחודש החציוני. שדרוג חבילה? חיוב שנתי?")
+            : null,
+          anomalies.gaps.length > 0
+            ? el("div", { class: "vendor-anomaly-note" },
+                "⏭ ",
+                el("strong", {}, "חודש חסר: "),
+                anomalies.gaps.map(g =>
+                  `${g.missing === 1 ? "חודש" : g.missing + " חודשים"} בין ${formatMonthShort(g.after)} ל-${formatMonthShort(g.before)}`
+                ).join(" · "),
+                " — לבדוק אם בוטל, הופסק זמנית, או שזה לא חיוב חודשי קבוע.")
+            : null,
+        )
+      : null,
+  );
+
+  return el("details", {
+    class: "vendor-row" + (isCancelled ? " is-cancelled" : ""),
+  },
+    el("summary", { class: "vendor-row-summary" }, ...summaryChildren),
+    body,
   );
 }
 

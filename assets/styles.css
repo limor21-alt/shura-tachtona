@@ -625,6 +625,114 @@ h3.subsection-title {
   border-radius: 4px;
 }
 
+/* Per-vendor recurring row — collapsible to reveal monthly history. */
+.vendor-row {
+  border-bottom: 1px dashed var(--border);
+  font-size: 14px;
+}
+.vendor-row[open] { background: var(--surface-soft); border-radius: 6px; }
+.vendor-row.is-cancelled { opacity: 0.55; }
+.vendor-row.is-cancelled .vendor-label { text-decoration: line-through; }
+.vendor-row-summary,
+.vendor-row-static {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 4px;
+  cursor: pointer;
+  list-style: none;
+}
+.vendor-row-static { cursor: default; }
+.vendor-row-summary::-webkit-details-marker { display: none; }
+.vendor-row-summary::after {
+  content: "▾";
+  color: var(--text-tertiary);
+  font-size: 11px;
+  transition: transform 0.2s;
+  grid-column: -1;
+}
+.vendor-row[open] .vendor-row-summary::after { transform: rotate(180deg); }
+.vendor-row-summary input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--surplus);
+  cursor: pointer;
+}
+.vendor-label { color: var(--text); }
+.vendor-months-count {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.vendor-monthly {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.vendor-anomaly-chip {
+  font-size: 11px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.vendor-row-body {
+  padding: 4px 16px 14px;
+  background: var(--surface-soft);
+}
+.vendor-month-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  border-right: 2px solid var(--border);
+}
+.vendor-month-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.vendor-month-name {
+  min-width: 80px;
+  color: var(--text-tertiary);
+}
+.vendor-month-amount {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.vendor-month-badge {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.vendor-month-badge.dup {
+  color: #6b21a8;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+}
+.vendor-month-badge.spike {
+  color: #9a3412;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+}
+.vendor-anomaly-notes {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vendor-anomaly-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.vendor-anomaly-note strong { color: var(--text); }
+
 /* Collapsible audit */
 .collapsible {
   border: 1px solid var(--border);

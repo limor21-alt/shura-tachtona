@@ -573,10 +573,11 @@ function downloadCsv(model) {
   triggerDownload(blob, "shura-tachtona-audit.csv");
 }
 
-/** Print the report. Force-opens all <details> collapsibles so the
- *  audit trail is part of the saved PDF, then restores their state. */
+/** Print the report. Force-opens all <details> elements so the audit
+ *  trail AND per-vendor monthly breakdowns are part of the saved PDF,
+ *  then restores their state. */
 function printReport() {
-  const details = Array.from(document.querySelectorAll("details.collapsible"));
+  const details = Array.from(document.querySelectorAll("details.collapsible, details.vendor-row"));
   const prevOpen = details.map(d => d.open);
   details.forEach(d => { d.open = true; });
   try {
@@ -590,10 +591,10 @@ function printReport() {
   }
 }
 
-// Also handle ctrl+P / cmd+P globally so the same audit-open behavior
-// applies even when the user uses the keyboard shortcut.
+// Also handle ctrl+P / cmd+P globally so the same expand-for-print
+// behavior applies when the user uses the keyboard shortcut.
 window.addEventListener("beforeprint", () => {
-  document.querySelectorAll("details.collapsible").forEach(d => d.open = true);
+  document.querySelectorAll("details.collapsible, details.vendor-row").forEach(d => d.open = true);
 });
 
 function triggerDownload(blob, filename) {

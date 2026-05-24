@@ -5,7 +5,8 @@ const SUITES = [
   "tests/classify_smoke.mjs",
   "tests/gate_smoke.mjs",
   "tests/pipeline_smoke.mjs",
-  "tests/acceptance.mjs"
+  "tests/acceptance.mjs",
+  "tests/playbooks_smoke.mjs"
 ];
 
 let totalPass = 0, totalFail = 0;

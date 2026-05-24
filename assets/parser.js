@@ -6,13 +6,18 @@
 // supabase/functions/super-service/schema.ts.
 //
 // Heuristics:
-//   - File type (bank | credit_card) detected from filename + header row.
-//   - Header row located by scanning the first ~30 rows for known
+//   - File type (bank | credit_card) detected from sheet name + header
+//     row + filename, in that order (content beats filename).
+//   - Header row located by scanning the first ~40 rows for known
 //     Hebrew column labels.
 //   - Dates accepted as Excel serial OR string formats DD/MM/YYYY,
 //     DD.MM.YYYY, DD-MM-YYYY, YYYY-MM-DD.
-//   - Amount columns: single "סכום" or split "זכות"/"חובה" (bank), or
-//     "סכום חיוב" (credit card).
+//   - Amount columns: a combined signed "זכות/חובה" column (Bank Leumi
+//     style), split "זכות"/"חובה" columns, or a single signed amount
+//     like "סכום חיוב" / "סכום העסקה" (credit-card exports).
+//   - "לובי הלוואות" sheets are detected and skipped — they're loan
+//     summaries, not transactions; the actual loan payments already show
+//     up in the bank statement.
 //   - Rows missing date or amount are skipped (probably metadata or
 //     totals lines).
 
@@ -26,7 +31,9 @@ if (!XLSX) {
 
 const CC_FILENAME_PATTERNS = [
   /max/i, /מקס/, /isracard/i, /ישראכרט/, /cal/i, /כא[״"]?ל/, /visa/i, /ויזה/,
-  /amex/i, /american.*express/i, /credit/i, /אשראי/
+  /amex/i, /american.*express/i, /credit/i, /אשראי/,
+  // Discount Bank credit-card portal exports.
+  /transaction[_-]?details/i, /transactiondetails/i
 ];
 const BANK_FILENAME_PATTERNS = [
   /bank/i, /hapoalim/i, /פועלים/, /leumi/i, /לאומי/, /discount/i, /דיסקונט/,
@@ -46,9 +53,11 @@ const HEADER_HINTS_BANK = [
   "תאריך ערך", "תאריך תנועה"
 ];
 const HEADER_HINTS_CC = [
-  "שם בית עסק", "שם בית-עסק", "בית עסק", "תיאור עסקה",
-  "סכום העסקה", "סכום החיוב", "סכום עסקה",
-  "תאריך עסקה", "תאריך רכישה"
+  "שם בית עסק", "שם בית-עסק", "שם בית העסק", "בית עסק", "בית העסק",
+  "תיאור עסקה",
+  "סכום העסקה", "סכום החיוב", "סכום עסקה", "סכום חיוב",
+  "תאריך עסקה", "תאריך רכישה", "תאריך חיוב",
+  "מפתח דיסקונט", "ספרות אחרונות של כרטיס"
 ];
 
 function detectTypeFromHeaders(headerRow) {
@@ -60,6 +69,25 @@ function detectTypeFromHeaders(headerRow) {
   return null;
 }
 
+// Sheet names are a strong signal in Israeli exports — "עובר ושב" / "עו״ש"
+// for bank, "עסקאות …" (חיוב / חו״ל / מט״ח) for credit card.
+function detectTypeFromSheetName(sheetName) {
+  const sn = String(sheetName || "");
+  if (sn.includes("עובר ושב") || /עו["״]ש/.test(sn)) return "bank";
+  if (sn.includes("עסקאות")) return "credit_card";
+  return null;
+}
+
+// "לובי הלוואות" / "הלוואות פעילות" — Leumi's loan-summary sheet. It
+// lists active loans (principal, balance, monthly payment) rather than
+// transactions, so it should be skipped cleanly instead of triggering a
+// generic "format not recognised" warning. The actual loan payments
+// already appear in the bank statement as "פירעון הלוואה …".
+function isLoansLobbySheet(sheetName) {
+  const sn = String(sheetName || "");
+  return sn.includes("לובי הלוואות") || sn.includes("הלוואות פעילות");
+}
+
 // ---- header row discovery ---------------------------------------
 
 const ALL_HEADER_KEYWORDS = [
@@ -68,8 +96,10 @@ const ALL_HEADER_KEYWORDS = [
 ];
 
 function findHeaderRow(rows) {
-  // Scan first 30 rows for any cell containing a header keyword.
-  const limit = Math.min(rows.length, 30);
+  // Scan first 40 rows for any cell containing a header keyword. Some
+  // exports have ~10 metadata rows before the header (filters, totals,
+  // disclaimers), so 30 was a tight fit.
+  const limit = Math.min(rows.length, 40);
   for (let i = 0; i < limit; i++) {
     const row = rows[i] || [];
     const cells = row.map(c => String(c || "").trim());
@@ -93,14 +123,46 @@ function findCol(headerCells, candidates) {
   return -1;
 }
 
+// Bank Leumi (and a few others) export a single signed column whose header
+// is "₪ זכות/חובה" — positive = credit, negative = debit. If we match
+// "זכות" and "חובה" as separate columns, both resolve to this one column
+// and the debit branch wrongly flips income to expenses. Detect the
+// combined header up-front and treat it as a signed amount column.
+function findCombinedSignedAmountCol(headerCells) {
+  for (let i = 0; i < headerCells.length; i++) {
+    const h = String(headerCells[i] || "");
+    if (h.includes("זכות") && h.includes("חובה")) return i;
+  }
+  return -1;
+}
+
 function resolveColumns(headerCells, fileType) {
-  const dateCol = findCol(headerCells, ["תאריך ערך", "תאריך תנועה", "תאריך עסקה", "תאריך רכישה", "תאריך"]);
-  const descCol = findCol(headerCells, ["תיאור פעולה", "תיאור התנועה", "שם בית עסק", "בית עסק", "תיאור עסקה", "תיאור"]);
-  // Bank may have split or unified amount columns
-  const debitCol  = findCol(headerCells, ["סכום בחובה", "חובה"]);
-  const creditCol = findCol(headerCells, ["סכום בזכות", "זכות"]);
-  const amountCol = findCol(headerCells, ["סכום העסקה", "סכום החיוב", "סכום עסקה", "סכום"]);
-  return { dateCol, descCol, debitCol, creditCol, amountCol, fileType };
+  // "תאריך ערך" (value date) intentionally comes after "תאריך תנועה"
+  // and "תאריך עסקה" — we want the transaction date, not the value date.
+  const dateCol = findCol(headerCells, [
+    "תאריך תנועה", "תאריך עסקה", "תאריך רכישה", "תאריך ערך", "תאריך"
+  ]);
+  const descCol = findCol(headerCells, [
+    "תיאור פעולה", "תיאור התנועה",
+    // "שם בית העסק" (with ה) is what Discount's portal uses; "שם בית עסק"
+    // (without ה) is what others use. Both, plus the shorter "בית …" forms.
+    "שם בית העסק", "שם בית עסק", "בית העסק", "בית עסק",
+    "תיאור עסקה", "תיאור"
+  ]);
+
+  const signedAmountCol = findCombinedSignedAmountCol(headerCells);
+  let debitCol = -1;
+  let creditCol = -1;
+  if (signedAmountCol < 0) {
+    debitCol  = findCol(headerCells, ["סכום בחובה", "חובה"]);
+    creditCol = findCol(headerCells, ["סכום בזכות", "זכות"]);
+  }
+  const amountCol = findCol(headerCells, [
+    // More specific first so "סכום חיוב" (Discount CC) wins over the bare
+    // "סכום" fallback when both happen to appear.
+    "סכום העסקה", "סכום החיוב", "סכום עסקה", "סכום חיוב", "סכום"
+  ]);
+  return { dateCol, descCol, debitCol, creditCol, signedAmountCol, amountCol, fileType };
 }
 
 // ---- value parsing ----------------------------------------------
@@ -152,7 +214,12 @@ function parseSheet({ sheet, sheetName, fileId, filename, filenameType }) {
   if (headerRow < 0) return [];
 
   const headerCells = rawRows[headerRow];
-  const detectedType = detectTypeFromHeaders(headerCells) || filenameType;
+  // Content beats filename: sheet-name and header text are more reliable
+  // than a guessable filename. Fall back to filename last.
+  const detectedType =
+    detectTypeFromHeaders(headerCells) ||
+    detectTypeFromSheetName(sheetName) ||
+    filenameType;
   const cols = resolveColumns(headerCells, detectedType);
 
   const out = [];
@@ -165,17 +232,25 @@ function parseSheet({ sheet, sheetName, fileId, filename, filenameType }) {
     if (!rawDesc) continue;
 
     let amount = null;
-    if (cols.debitCol >= 0 || cols.creditCol >= 0) {
+    if (cols.signedAmountCol >= 0) {
+      // Single signed column ("₪ זכות/חובה"): use the sign as-is.
+      const a = parseAmount(row[cols.signedAmountCol]);
+      if (a !== null && a !== 0) amount = a;
+    } else if (cols.debitCol >= 0 || cols.creditCol >= 0) {
       const debit  = cols.debitCol  >= 0 ? parseAmount(row[cols.debitCol])  : null;
       const credit = cols.creditCol >= 0 ? parseAmount(row[cols.creditCol]) : null;
-      if (debit && debit !== 0)       amount = -Math.abs(debit);
+      if (debit && debit !== 0)        amount = -Math.abs(debit);
       else if (credit && credit !== 0) amount = Math.abs(credit);
     }
     if (amount === null && cols.amountCol >= 0) {
       const a = parseAmount(row[cols.amountCol]);
       if (a !== null) {
-        // For credit-card files, amounts are usually positive but represent expenses → negate.
-        amount = detectedType === "credit_card" ? -Math.abs(a) : a;
+        // Credit-card exports list charges as positive numbers; flip to
+        // negative so the downstream pipeline treats them as expenses.
+        // Refunds (already negative in the source) become positive — the
+        // sign-preserving form a < 0 ? -a : -a is just -Math.abs, but we
+        // need: positive charge → negative; negative refund → positive.
+        amount = detectedType === "credit_card" ? -a : a;
       }
     }
     if (amount === null || isNaN(amount) || amount === 0) continue;
@@ -227,7 +302,11 @@ export async function parseFiles(files) {
       continue;
     }
 
+    let fileRowCount = 0;
+    let loansLobbyOnly = wb.SheetNames.length > 0;
     for (const sheetName of wb.SheetNames) {
+      if (isLoansLobbySheet(sheetName)) continue;
+      loansLobbyOnly = false;
       const sheet = wb.Sheets[sheetName];
       const rows = parseSheet({ sheet, sheetName, fileId, filename: file.name, filenameType });
       for (const r of rows) {
@@ -235,11 +314,16 @@ export async function parseFiles(files) {
         if (r.source === "credit_card") filesPresent.credit_card = true;
         if (r.date && r.date.length >= 7) monthsSet.add(r.date.slice(0, 7));
       }
+      fileRowCount += rows.length;
       allRows.push(...rows);
     }
 
-    if (allRows.length === 0 && wb.SheetNames.length > 0) {
-      warnings.push(`${file.name}: לא זוהו תנועות. ייתכן שהפורמט שונה.`);
+    if (fileRowCount === 0 && wb.SheetNames.length > 0) {
+      if (loansLobbyOnly) {
+        warnings.push(`${file.name}: זה קובץ סיכום הלוואות, לא תנועות. תשלומי ההלוואה כבר מופיעים בעו״ש — אין צורך להעלות אותו.`);
+      } else {
+        warnings.push(`${file.name}: לא זוהו תנועות. ייתכן שהפורמט שונה.`);
+      }
     }
   }
 
